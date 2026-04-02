@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/listing.dart';
 import '../screens/property_details_screen.dart';
+import '../screens/experience_details_screen.dart';
+import '../screens/service_details_screen.dart';
 
 class ListingCard extends StatelessWidget {
   final Listing listing;
@@ -18,10 +20,20 @@ class ListingCard extends StatelessWidget {
         // Track this view dynamically
         RecentlyViewedManager.addView(listing);
 
+        // Navigate based on listing type prefixed ID or duration string
+        Widget targetScreen;
+        if (listing.id.startsWith('s')) {
+          targetScreen = ServiceDetailsScreen(listing: listing);
+        } else if (listing.id.startsWith('e') || listing.duration.contains('person')) {
+          targetScreen = ExperienceDetailsScreen(listing: listing);
+        } else {
+          targetScreen = PropertyDetailsScreen(listing: listing);
+        }
+
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => PropertyDetailsScreen(listing: listing),
+            builder: (context) => targetScreen,
           ),
         );
       },

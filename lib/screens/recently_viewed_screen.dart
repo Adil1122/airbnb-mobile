@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/listing.dart';
 import 'property_details_screen.dart';
+import 'experience_details_screen.dart';
+import 'service_details_screen.dart';
 
 class RecentlyViewedScreen extends StatelessWidget {
   const RecentlyViewedScreen({Key? key}) : super(key: key);
@@ -110,10 +112,19 @@ class _RecentlyViewedGrid extends StatelessWidget {
         final listing = listings[index];
         return GestureDetector(
           onTap: () {
+            Widget targetScreen;
+            if (listing.id.startsWith('s')) {
+              targetScreen = ServiceDetailsScreen(listing: listing);
+            } else if (listing.id.startsWith('e') || listing.duration.contains('person')) {
+              targetScreen = ExperienceDetailsScreen(listing: listing);
+            } else {
+              targetScreen = PropertyDetailsScreen(listing: listing);
+            }
+            
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PropertyDetailsScreen(listing: listing),
+                builder: (context) => targetScreen,
               ),
             );
           },
