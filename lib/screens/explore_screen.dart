@@ -40,15 +40,106 @@ class _ExploreScreenState extends State<ExploreScreen> {
   // Helper function to build lists
   List<Listing> _buildList(String idPrefix, String prefix, String suffix, List<String> imagesList, double basePrice) {
     return List.generate(6, (index) {
+       // Generate 8 images list
+       final List<String> gallery = List.generate(8, (i) => imagesList[(index + i) % imagesList.length]);
+
        return Listing(
           id: '${idPrefix}_$index',
-          imageUrl: imagesList[index % imagesList.length],
-          title: '$prefix ${index + 1} in $suffix',
-          subtitle: 'Hosted by Host ${index + 1}',
+          imageUrl: gallery[0],
+          images: gallery,
+          title: index == 0 && suffix == 'Lahore' ? 'Elegant Apartment with Eiffel Tower View' : '$prefix ${index + 1} in $suffix',
+          subtitle: 'Entire rental unit in $suffix',
           price: basePrice + (index * 15).toDouble(),
           duration: '${index + 1} nights',
-          rating: 4.5 + (index % 5) * 0.1,
-          isGuestFavorite: index % 2 == 0,
+          rating: index == 0 && suffix == 'Lahore' ? 5.0 : 4.5 + (index % 5) * 0.1,
+          isGuestFavorite: index == 0 || index % 2 == 0,
+          bedrooms: 1 + (index % 2),
+          beds: 1 + (index % 2),
+          baths: 1,
+          reviewsCount: index == 0 && suffix == 'Lahore' ? 6 : 6 + (index * 4),
+          hostDuration: '1 month hosting',
+          description: index == 0 && suffix == 'Lahore' 
+            ? 'Welcome to our Eiffel Tower View Apartment, a comfortable and well-furnished space perfect for couples, families, and business travelers. The apartment features a cozy living area, air conditioning, TV, geyser/heater, and a fully equipped kitchen with oven. Cleanliness and comfort are our top priorities. No loud music or parties allowed. Enjoy a peaceful, secure, and relaxing stay with a beautiful view.'
+            : 'Experience the perfect blend of comfort and style in this stunning $prefix. Located in the heart of $suffix, you will be just steps away from local attractions. Ideal for short stays or long getaways.',
+          mentions: const [
+            ReviewMention(label: 'Accuracy', iconImageUrl: 'https://cdn-icons-png.flaticon.com/512/5709/5709755.png'),
+            ReviewMention(label: 'View', iconImageUrl: 'https://cdn-icons-png.flaticon.com/512/2586/2586043.png'),
+            ReviewMention(label: 'Hospitality', iconImageUrl: 'https://cdn-icons-png.flaticon.com/512/3144/3144456.png'),
+            ReviewMention(label: 'Family', iconImageUrl: 'https://cdn-icons-png.flaticon.com/512/2755/2755250.png'),
+            ReviewMention(label: 'Cleanliness', iconImageUrl: 'https://cdn-icons-png.flaticon.com/512/9902/9902125.png'),
+          ],
+          amenities: const [
+            'Kitchen',
+            'Wifi',
+            'Dedicated workspace',
+            'Free parking on premises',
+            'Pets allowed',
+            'Air conditioning',
+            'TV',
+            'Geyser/heater',
+            'Washer',
+            'Crib',
+            'High chair',
+            'Safe',
+          ],
+          fullAddress: index == 0 && suffix == 'Lahore' ? 'Lahore, Punjab, Pakistan' : '$suffix, Pakistan',
+          hostName: index == 0 && suffix == 'Lahore' ? 'Syed Talal' : 'Muhammad',
+          hostSchool: index == 0 && suffix == 'Lahore' ? 'Islamabad Gov School' : 'University of Lahore',
+          hostWork: index == 0 && suffix == 'Lahore' ? 'Software Engineer' : 'Real Estate Developer',
+          hostBio: index == 0 && suffix == 'Lahore' 
+            ? 'Software Engineering student with a passion for high-performance machines and the great outdoors. When I’m not deep in code or architecting new projects, you’ll find me on the road exploring. Whether it’s the roar of a car engine, the freedom of a bike, or the thrill of a new adventure, I’m always moving forward. Driven by curiosity and a relentless pursuit of innovation, I’m here to build, deploy, and explore everything the digital and physical worlds have to offer.'
+            : 'Welcome to our beautiful home in the heart of the city!',
+          hostResponseRate: '100%',
+          hostResponseTime: 'within an hour',
+          cancellationPolicy: index == 0 && suffix == 'Lahore' 
+            ? 'Free cancellation before 1:00 PM on April 2. Cancel before check-in on April 3 for a partial refund. Review this host\'s full policy for details.'
+            : 'Flexible',
+          checkInTime: '1:00 PM - 6:00 PM',
+          checkOutTime: '11:00 AM',
+          safetyInfo: const ['Carbon monoxide alarm', 'Smoke alarm'],
+          guests: index == 0 && suffix == 'Lahore' ? 3 : 3 + (index % 3),
+          reviews: [
+            Review(
+              userName: 'Muhammad',
+              userLocation: 'Sargodha, Pakistan',
+              userImageUrl: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100&q=80',
+              rating: 5.0,
+              date: '4 days ago',
+              comment: 'Very good host, exactly as described. Relaxing atmosphere with family and nice view. Everything needed was there, home-like atmosphere.',
+            ),
+            Review(
+              userName: 'Abdullah',
+              userLocation: 'Lahore, Pakistan',
+              userImageUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&q=80',
+              rating: 4.8,
+              date: '1 week ago',
+              comment: 'I stayed here for the weekend with my family. The place was very clean and well-maintained. The view is indeed spectacular!',
+            ),
+            Review(
+              userName: 'Ayesha',
+              userLocation: 'Islamabad, Pakistan',
+              userImageUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&q=80',
+              rating: 5.0,
+              date: '2 weeks ago',
+              comment: 'Absolutely loved the place! The host was super helpful and the apartment had everything we needed. Highly recommended for anyone visiting Lahore.',
+            ),
+            Review(
+              userName: 'Zain',
+              userLocation: 'Karachi, Pakistan',
+              userImageUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80',
+              rating: 4.5,
+              date: '1 month ago',
+              comment: 'Great location and very comfortable stay. The check-in process was seamless. Will definitely come back again.',
+            ),
+            Review(
+              userName: 'Fatima',
+              userLocation: 'Faisalabad, Pakistan',
+              userImageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80',
+              rating: 4.9,
+              date: '2 months ago',
+              comment: 'A home away from home. The interior is beautiful and the Eiffel Tower view is breathtaking at night.',
+            ),
+          ],
        );
     });
   }

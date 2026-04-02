@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'explore_screen.dart';
+import 'wishlist_screen.dart';
+import 'profile_screen.dart';
+import 'messages_screen.dart';
+import 'trips_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -13,10 +17,10 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     const ExploreScreen(),
-    const Center(child: Text('Wishlists')),
-    const Center(child: Text('Trips')),
-    const Center(child: Text('Messages')),
-    const Center(child: Text('Profile')),
+    const WishlistScreen(),
+    const TripsScreen(),
+    const MessagesScreen(),
+    const ProfileScreen(),
   ];
 
   @override
