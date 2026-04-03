@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'account_settings/personal_info/profile_edit_screen.dart';
+import 'past_trips_screen.dart';
+import 'connections_screen.dart';
+import 'become_host_screen.dart';
+import 'account_settings/account_settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -41,25 +46,49 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // User Info Card
-            _buildInfoCard(),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfileEditScreen()),
+                );
+              },
+              child: _buildInfoCard(),
+            ),
             const SizedBox(height: 24),
 
             // Past trips & Connections Row
             Row(
               children: [
                 Expanded(
-                  child: _buildSubCard(
-                    title: 'Past trips',
-                    imagePath: 'C:\\Users\\Computer Arena\\.gemini\\antigravity\\brain\\81fcd7ad-8900-4a3e-b0d4-241b5d143fb1\\profile_suitcase_icon_1775037872147.png',
-                    isNew: true,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PastTripsScreen()),
+                      );
+                    },
+                    child: _buildSubCard(
+                      title: 'Past trips',
+                      imagePath: 'C:\\Users\\Computer Arena\\.gemini\\antigravity\\brain\\81fcd7ad-8900-4a3e-b0d4-241b5d143fb1\\profile_suitcase_icon_1775037872147.png',
+                      isNew: true,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildSubCard(
-                    title: 'Connections',
-                    imagePath: 'C:\\Users\\Computer Arena\\.gemini\\antigravity\\brain\\81fcd7ad-8900-4a3e-b0d4-241b5d143fb1\\profile_connections_icon_1775038024146.png',
-                    isNew: true,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ConnectionsScreen()),
+                      );
+                    },
+                    child: _buildSubCard(
+                      title: 'Connections',
+                      imagePath: 'C:\\Users\\Computer Arena\\.gemini\\antigravity\\brain\\81fcd7ad-8900-4a3e-b0d4-241b5d143fb1\\profile_connections_icon_1775038024146.png',
+                      isNew: true,
+                    ),
                   ),
                 ),
               ],
@@ -67,11 +96,28 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Become a Host Card
-            _buildBecomeHostCard(),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const BecomeHostScreen()),
+                );
+              },
+              child: _buildBecomeHostCard(),
+            ),
             const SizedBox(height: 32),
 
             // Settings Items
-            _buildSettingsRow(Icons.settings_outlined, 'Account settings'),
+            _buildSettingsRow(
+              Icons.settings_outlined, 
+              'Account settings',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
+                );
+              },
+            ),
             const SizedBox(height: 24),
             _buildSettingsRow(Icons.help_outline, 'Get help'),
             const SizedBox(height: 24),
@@ -263,24 +309,27 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingsRow(IconData icon, String title, {bool hasChevron = true}) {
-    return Row(
-      children: [
-        Icon(icon, size: 28),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w400,
-              color: Colors.black,
+  Widget _buildSettingsRow(IconData icon, String title, {bool hasChevron = true, VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w400,
+                color: Colors.black,
+              ),
             ),
           ),
-        ),
-        if (hasChevron)
-          const Icon(Icons.chevron_right, color: Colors.black54),
-      ],
+          if (hasChevron)
+            const Icon(Icons.chevron_right, color: Colors.black54),
+        ],
+      ),
     );
   }
 }

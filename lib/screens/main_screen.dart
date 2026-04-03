@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'explore_screen.dart';
 import 'wishlist_screen.dart';
-import 'profile_screen.dart';
+import 'profile/profile_screen.dart';
 import 'messages_screen.dart';
 import 'trips_screen.dart';
 
