@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 class ProfileFormScreen extends StatefulWidget {
-  const ProfileFormScreen({Key? key}) : super(key: key);
+  const ProfileFormScreen({super.key});
 
   @override
   State<ProfileFormScreen> createState() => _ProfileFormScreenState();
@@ -87,7 +87,7 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
                                     borderRadius: BorderRadius.circular(24),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
+                                        color: Colors.black.withValues(alpha: 0.1),
                                         blurRadius: 10,
                                         offset: const Offset(0, 4),
                                       ),
@@ -209,7 +209,7 @@ class _ProfileFormScreenState extends State<ProfileFormScreen> {
                                   _stampsEnabled = val;
                                 });
                               },
-                              activeColor: Colors.black,
+                              activeThumbColor: Colors.black,
                             ),
                           ],
                         ),

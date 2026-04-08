@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'profile_form_screen.dart';
 
 class ProfileEditScreen extends StatefulWidget {
-  const ProfileEditScreen({Key? key}) : super(key: key);
+  const ProfileEditScreen({super.key});
 
   @override
   State<ProfileEditScreen> createState() => _ProfileEditScreenState();
@@ -27,7 +27,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -57,7 +57,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -91,7 +91,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -184,7 +184,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 4), // Added white border to overlap the dark triangle nicely if needed, but in mock it just sits below.
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
                       ],
                     ),
                     child: const Center(

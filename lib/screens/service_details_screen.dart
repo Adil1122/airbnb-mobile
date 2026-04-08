@@ -4,7 +4,7 @@ import '../models/listing.dart';
 class ServiceDetailsScreen extends StatelessWidget {
   final Listing listing;
 
-  const ServiceDetailsScreen({Key? key, required this.listing}) : super(key: key);
+  const ServiceDetailsScreen({super.key, required this.listing});
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +145,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 4),
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
                             ],
                           ),
                           child: const CircleAvatar(
@@ -201,7 +201,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                 border: Border(top: BorderSide(color: Colors.grey.shade200)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     offset: const Offset(0, -2),
                     blurRadius: 10,
                   ),
@@ -281,7 +281,7 @@ class ServiceDetailsScreen extends StatelessWidget {
           color: Colors.white,
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8),
           ],
         ),
         child: Icon(icon, size: 20, color: Colors.black87),
@@ -350,7 +350,7 @@ class ServiceDetailsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -638,7 +638,7 @@ class ServiceDetailsScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -809,7 +809,7 @@ class ServiceDetailsScreen extends StatelessWidget {
                     color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8),
                     ],
                   ),
                   child: const Icon(Icons.open_in_full, size: 20),
@@ -932,7 +932,7 @@ class ServiceDetailsScreen extends StatelessWidget {
               color: const Color(0xFFD4AF37),
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4)),
               ],
             ),
             child: const Center(

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AddEmergencyContactScreen extends StatefulWidget {
-  const AddEmergencyContactScreen({Key? key}) : super(key: key);
+  const AddEmergencyContactScreen({super.key});
 
   @override
-  _AddEmergencyContactScreenState createState() => _AddEmergencyContactScreenState();
+  State<AddEmergencyContactScreen> createState() => _AddEmergencyContactScreenState();
 }
 
 class _AddEmergencyContactScreenState extends State<AddEmergencyContactScreen> {

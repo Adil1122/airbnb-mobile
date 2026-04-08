@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'host/step1_screens.dart';
 import 'dart:io';
 
 class BecomeHostScreen extends StatelessWidget {
-  const BecomeHostScreen({Key? key}) : super(key: key);
+  const BecomeHostScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +86,12 @@ class BecomeHostScreen extends StatelessWidget {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HostStep1IntroScreen()),
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFE31C5F), // Airbnb Red/Pink
                 foregroundColor: Colors.white,

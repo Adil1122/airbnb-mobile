@@ -4,7 +4,7 @@ import '../models/listing.dart';
 class PropertyDetailsScreen extends StatefulWidget {
   final Listing listing;
 
-  const PropertyDetailsScreen({Key? key, required this.listing}) : super(key: key);
+  const PropertyDetailsScreen({super.key, required this.listing});
 
   @override
   State<PropertyDetailsScreen> createState() => _PropertyDetailsScreenState();
@@ -88,9 +88,9 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Colors.black.withOpacity(0.3),
+                                Colors.black.withValues(alpha: 0.3),
                                 Colors.transparent,
-                                Colors.black.withOpacity(0.1),
+                                Colors.black.withValues(alpha: 0.1),
                               ],
                               stops: const [0.0, 0.2, 1.0],
                             ),
@@ -164,7 +164,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
+                            color: Colors.black.withValues(alpha: 0.7),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -394,7 +394,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                         const SizedBox(height: 8),
                         const Center(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            padding: EdgeInsets.symmetric(horizontal: 32),
                             child: Text(
                               'This home is in the top 10% of eligible listings based on ratings, reviews, and reliability',
                               textAlign: TextAlign.center,
@@ -477,7 +477,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                             ),
                           ],
                         ),
-                      )).toList(),
+                      )),
                       const SizedBox(height: 8),
                       SizedBox(
                         width: double.infinity,
@@ -572,7 +572,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
+                              color: Colors.black.withValues(alpha: 0.08),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
@@ -752,7 +752,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.security, color: const Color(0xFFE31C5F).withOpacity(0.5), size: 32),
+                          Icon(Icons.security, color: const Color(0xFFE31C5F).withValues(alpha: 0.5), size: 32),
                           const SizedBox(width: 16),
                           const Expanded(
                             child: Text(
@@ -928,7 +928,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                 color: Colors.white,
                 border: const Border(top: BorderSide(color: Color(0xFFDDDDDD), width: 1)),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, -5)),
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, -5)),
                 ],
               ),
               child: Row(
@@ -952,7 +952,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                         'For 2 nights · Apr 3 – 5',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -1130,9 +1130,9 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                     Row(
                       children: [
                         Row(
-                          children: List.generate(5, (index_inner) {
+                          children: List.generate(5, (indexInner) {
                             return Icon(
-                              index_inner < review.rating.floor() ? Icons.star : Icons.star_border,
+                              indexInner < review.rating.floor() ? Icons.star : Icons.star_border,
                               size: 14,
                               color: Colors.black,
                             );

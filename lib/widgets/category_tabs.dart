@@ -13,10 +13,10 @@ class CategoryTabs extends StatelessWidget {
   final Function(int) onTabSelected;
 
   const CategoryTabs({
-    Key? key,
+    super.key,
     required this.selectedIndex,
     required this.onTabSelected,
-  }) : super(key: key);
+  });
 
   static final List<CategoryItem> _categories = [
     CategoryItem(label: 'Homes', icon: Icons.home),

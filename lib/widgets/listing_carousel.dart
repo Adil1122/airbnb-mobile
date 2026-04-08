@@ -7,10 +7,10 @@ class ListingCarousel extends StatefulWidget {
   final List<Listing> listings;
 
   const ListingCarousel({
-    Key? key,
+    super.key,
     required this.title,
     required this.listings,
-  }) : super(key: key);
+  });
 
   @override
   State<ListingCarousel> createState() => _ListingCarouselState();

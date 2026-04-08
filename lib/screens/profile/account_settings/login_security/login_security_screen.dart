@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../personal_info/deactivation_reason_screen.dart';
 
 class LoginSecurityScreen extends StatefulWidget {
-  const LoginSecurityScreen({Key? key}) : super(key: key);
+  const LoginSecurityScreen({super.key});
 
   @override
-  _LoginSecurityScreenState createState() => _LoginSecurityScreenState();
+  State<LoginSecurityScreen> createState() => _LoginSecurityScreenState();
 }
 
 class _LoginSecurityScreenState extends State<LoginSecurityScreen> with SingleTickerProviderStateMixin {
@@ -386,7 +386,7 @@ class _LoginSecurityScreenState extends State<LoginSecurityScreen> with SingleTi
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.pink.withOpacity(0.1),
+                        color: Colors.pink.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),

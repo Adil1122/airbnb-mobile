@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'personal_info/personal_info_screen.dart';
 import 'login_security/login_security_screen.dart';
 import 'privacy/privacy_screen.dart';
+import 'accessibility/accessibility_screen.dart';
 import 'notifications/notifications_screen.dart';
 import 'payments/payments_payouts_screen.dart';
+import 'taxes/taxes_screen.dart';
+import 'translation/translation_screen.dart';
+import 'travel_for_work/travel_for_work_screen.dart';
 
 class AccountSettingsScreen extends StatelessWidget {
-  const AccountSettingsScreen({Key? key}) : super(key: key);
+  const AccountSettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -85,10 +89,46 @@ class AccountSettingsScreen extends StatelessWidget {
                 );
               },
             ),
-            _buildSettingItem(Icons.calculate_outlined, 'Taxes'),
-            _buildSettingItem(Icons.language_outlined, 'Translation'),
-            _buildSettingItem(Icons.card_travel_outlined, 'Travel for work'),
-            _buildSettingItem(Icons.settings_accessibility_outlined, 'Accessibility'),
+            _buildSettingItem(
+              Icons.calculate_outlined, 
+              'Taxes',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TaxesScreen()),
+                );
+              },
+            ),
+            _buildSettingItem(
+              Icons.language_outlined, 
+              'Translation',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TranslationScreen()),
+                );
+              },
+            ),
+            _buildSettingItem(
+              Icons.card_travel_outlined, 
+              'Travel for work',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TravelForWorkScreen()),
+                );
+              },
+            ),
+            _buildSettingItem(
+              Icons.settings_accessibility_outlined, 
+              'Accessibility',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AccessibilityScreen()),
+                );
+              },
+            ),
             
             const SizedBox(height: 32),
             const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),

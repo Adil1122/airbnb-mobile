@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class DeactivationReasonScreen extends StatefulWidget {
-  const DeactivationReasonScreen({Key? key}) : super(key: key);
+  const DeactivationReasonScreen({super.key});
 
   @override
-  _DeactivationReasonScreenState createState() => _DeactivationReasonScreenState();
+  State<DeactivationReasonScreen> createState() => _DeactivationReasonScreenState();
 }
 
 class _DeactivationReasonScreenState extends State<DeactivationReasonScreen> {

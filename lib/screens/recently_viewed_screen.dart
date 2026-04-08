@@ -5,12 +5,12 @@ import 'experience_details_screen.dart';
 import 'service_details_screen.dart';
 
 class RecentlyViewedScreen extends StatelessWidget {
-  const RecentlyViewedScreen({Key? key}) : super(key: key);
+  const RecentlyViewedScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     // Shared styling for section headers
-    Widget _buildSectionHeader(String title) {
+    Widget buildSectionHeader(String title) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Text(
@@ -77,7 +77,7 @@ class RecentlyViewedScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _buildSectionHeader('All history'),
+                    buildSectionHeader('All history'),
                     _RecentlyViewedGrid(listings: RecentlyViewedManager.recentlyViewed),
                     const SizedBox(height: 32),
                   ],
@@ -92,9 +92,8 @@ class _RecentlyViewedGrid extends StatelessWidget {
   final List<Listing> listings;
 
   const _RecentlyViewedGrid({
-    Key? key,
     required this.listings,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

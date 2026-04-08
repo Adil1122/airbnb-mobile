@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class CreditsCouponsScreen extends StatelessWidget {
-  const CreditsCouponsScreen({Key? key}) : super(key: key);
+  const CreditsCouponsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +70,7 @@ class CreditsCouponsScreen extends StatelessWidget {
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     decoration: TextDecoration.underline,
-                    decorationColor: Colors.black.withOpacity(0.3),
+                    decorationColor: Colors.black.withValues(alpha: 0.3),
                   ),
                 ),
               ],

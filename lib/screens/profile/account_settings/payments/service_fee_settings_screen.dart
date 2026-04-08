@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class ServiceFeeSettingsScreen extends StatefulWidget {
-  const ServiceFeeSettingsScreen({Key? key}) : super(key: key);
+  const ServiceFeeSettingsScreen({super.key});
 
   @override
-  _ServiceFeeSettingsScreenState createState() => _ServiceFeeSettingsScreenState();
+  State<ServiceFeeSettingsScreen> createState() => _ServiceFeeSettingsScreenState();
 }
 
 class _ServiceFeeSettingsScreenState extends State<ServiceFeeSettingsScreen> {

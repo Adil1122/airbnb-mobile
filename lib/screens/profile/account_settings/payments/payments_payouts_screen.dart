@@ -7,7 +7,7 @@ import 'earnings_screen.dart';
 import 'service_fee_settings_screen.dart';
 
 class PaymentsPayoutsScreen extends StatelessWidget {
-  const PaymentsPayoutsScreen({Key? key}) : super(key: key);
+  const PaymentsPayoutsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

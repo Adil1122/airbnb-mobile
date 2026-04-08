@@ -6,7 +6,7 @@ import '../widgets/price_fees_toggle.dart';
 import '../models/listing.dart';
 
 class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({Key? key}) : super(key: key);
+  const ExploreScreen({super.key});
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();

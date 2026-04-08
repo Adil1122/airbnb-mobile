@@ -6,7 +6,7 @@ void main() {
 }
 
 class AirbnbApp extends StatelessWidget {
-  const AirbnbApp({Key? key}) : super(key: key);
+  const AirbnbApp({super.key});
 
   @override
   Widget build(BuildContext context) {

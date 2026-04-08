@@ -3,7 +3,7 @@ import '../models/listing.dart';
 import 'recently_viewed_screen.dart';
 
 class WishlistScreen extends StatelessWidget {
-  const WishlistScreen({Key? key}) : super(key: key);
+  const WishlistScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -74,10 +74,9 @@ class _CollageWidget extends StatelessWidget {
   final double borderRadius;
 
   const _CollageWidget({
-    Key? key,
     required this.size,
     required this.borderRadius,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

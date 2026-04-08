@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class PriceFeesToggle extends StatelessWidget {
-  const PriceFeesToggle({Key? key}) : super(key: key);
+  const PriceFeesToggle({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -12,12 +12,12 @@ class PriceFeesToggle extends StatelessWidget {
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),

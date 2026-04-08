@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../main_screen.dart';
 
 class PastTripsScreen extends StatelessWidget {
-  const PastTripsScreen({Key? key}) : super(key: key);
+  const PastTripsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

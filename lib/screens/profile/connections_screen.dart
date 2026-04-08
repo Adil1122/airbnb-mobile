@@ -4,7 +4,7 @@ import 'dart:io';
 import '../main_screen.dart';
 
 class ConnectionsScreen extends StatelessWidget {
-  const ConnectionsScreen({Key? key}) : super(key: key);
+  const ConnectionsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

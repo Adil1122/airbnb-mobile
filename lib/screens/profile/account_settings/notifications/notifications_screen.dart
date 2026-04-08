@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({Key? key}) : super(key: key);
+  const NotificationsScreen({super.key});
 
   @override
-  _NotificationsScreenState createState() => _NotificationsScreenState();
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> with SingleTickerProviderStateMixin {
@@ -463,7 +463,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
                   (val) => setModalState(() => preferenceStates[channel] = val),
                   isDisabled: title == 'Guest policies' && channel == 'Email',
                 ),
-              )).toList(),
+              )),
               const SizedBox(height: 8),
             ],
           ),
