@@ -15,10 +15,14 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
+  List<Widget> get _pages => [
     const ExploreScreen(),
     const WishlistScreen(),
-    const TripsScreen(),
+    TripsScreen(onGetStarted: () {
+      setState(() {
+        _currentIndex = 0;
+      });
+    }),
     const MessagesScreen(),
     const ProfileScreen(),
   ];

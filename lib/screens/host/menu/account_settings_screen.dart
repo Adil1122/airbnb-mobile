@@ -1,4 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../profile/account_settings/personal_info/personal_info_screen.dart';
+import '../../profile/account_settings/login_security/login_security_screen.dart';
+import '../../profile/account_settings/privacy/privacy_screen.dart';
+import '../../profile/account_settings/accessibility/accessibility_screen.dart';
+import '../../profile/account_settings/notifications/notifications_screen.dart';
+import '../../profile/account_settings/payments/payments_payouts_screen.dart';
+import '../../profile/account_settings/taxes/taxes_screen.dart';
+import '../../profile/account_settings/translation/translation_screen.dart';
+import '../../profile/account_settings/travel_for_work/travel_for_work_screen.dart';
 
 class AccountSettingsScreen extends StatelessWidget {
   const AccountSettingsScreen({super.key});
@@ -31,21 +40,57 @@ class AccountSettingsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            _buildSettingItem(Icons.person_outline, 'Personal information'),
-            _buildSettingItem(Icons.security_outlined, 'Login & security'),
-            _buildSettingItem(Icons.back_hand_outlined, 'Privacy'),
-            _buildSettingItem(Icons.notifications_outlined, 'Notifications'),
-            _buildSettingItem(Icons.payments_outlined, 'Payments'),
-            _buildSettingItem(Icons.language_outlined, 'Translation'),
-            _buildSettingItem(Icons.work_outline, 'Travel for work'),
-            _buildSettingItem(Icons.settings_accessibility_outlined, 'Accessibility'),
+            _buildSettingItem(
+              Icons.person_outline, 
+              'Personal information',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PersonalInfoScreen())),
+            ),
+            _buildSettingItem(
+              Icons.security_outlined, 
+              'Login & security',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginSecurityScreen())),
+            ),
+            _buildSettingItem(
+              Icons.back_hand_outlined, 
+              'Privacy',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyScreen())),
+            ),
+            _buildSettingItem(
+              Icons.notifications_outlined, 
+              'Notifications',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationsScreen())),
+            ),
+            _buildSettingItem(
+              Icons.payments_outlined, 
+              'Payments',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentsPayoutsScreen())),
+            ),
+            _buildSettingItem(
+              Icons.language_outlined, 
+              'Translation',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TranslationScreen())),
+            ),
+            _buildSettingItem(
+              Icons.work_outline, 
+              'Travel for work',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TravelForWorkScreen())),
+            ),
+            _buildSettingItem(
+              Icons.settings_accessibility_outlined, 
+              'Accessibility',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AccessibilityScreen())),
+            ),
             
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
               child: Divider(),
             ),
             
-            _buildSettingItem(Icons.calculate_outlined, 'Taxes'),
+            _buildSettingItem(
+              Icons.calculate_outlined, 
+              'Taxes',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TaxesScreen())),
+            ),
             
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0),
@@ -69,7 +114,7 @@ class AccountSettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingItem(IconData icon, String title) {
+  Widget _buildSettingItem(IconData icon, String title, {VoidCallback? onTap}) {
     return Column(
       children: [
         ListTile(
@@ -83,7 +128,7 @@ class AccountSettingsScreen extends StatelessWidget {
             ),
           ),
           trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 24),
-          onTap: () {},
+          onTap: onTap,
         ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 24.0),

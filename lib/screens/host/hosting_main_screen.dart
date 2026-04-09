@@ -9,12 +9,21 @@ import 'tabs/hosting_menu_tab.dart';
 class HostingMainScreen extends StatefulWidget {
   const HostingMainScreen({super.key});
 
+  static _HostingMainScreenState? of(BuildContext context) => 
+      context.findAncestorStateOfType<_HostingMainScreenState>();
+
   @override
   State<HostingMainScreen> createState() => _HostingMainScreenState();
 }
 
 class _HostingMainScreenState extends State<HostingMainScreen> {
   int _currentIndex = 0;
+
+  void setIndex(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 
   final List<Widget> _tabs = [
     const HostingTodayTab(),

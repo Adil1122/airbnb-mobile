@@ -150,20 +150,17 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
               opacity: isAnyEditing ? 0.3 : 1.0,
               child: IgnorePointer(
                 ignoring: isAnyEditing,
-                child: Column(
-                  children: [
-                    _buildInfoSection(
-                      'Phone number', 
-                      'Add a number so confirmed guests and Airbnb can get in touch. You can add other numbers and choose how they\'re used.',
-                      'Add',
-                      onAction: () => _showAddPhoneModal(context),
-                    ),
-                    const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
-                  ],
+                child: _buildInfoSection(
+                  'Phone number', 
+                  '+92 *** ***6857',
+                  'Edit',
+                  description: 'Contact number (for confirmed guests and Airbnb to get in touch). You can add other numbers and choose how they’re used.',
+                  onAction: () => _showAddPhoneModal(context),
                 ),
               ),
             ),
-
+            const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
+            
             // Email Section
             if (_isEditingEmail)
               _buildEmailEditForm()
@@ -191,11 +188,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                 child: IgnorePointer(
                   ignoring: (isAnyEditing && !_isEditingResidentialAddress),
                   child: _buildInfoSection(
-                    'Residential address', 
-                    'Not provided', 
-                    'Add',
-                    onAction: () => setState(() => _isEditingResidentialAddress = true),
-                  ),
+                  'Residential address', 
+                  'Provided', 
+                  'Edit',
+                  onAction: () => setState(() => _isEditingResidentialAddress = true),
+                ),
                 ),
               ),
             const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
@@ -958,7 +955,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     );
   }
 
-  Widget _buildInfoSection(String title, String content, String actionText, {VoidCallback? onAction}) {
+  Widget _buildInfoSection(String title, String content, String actionText, {String? description, VoidCallback? onAction}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24.0),
       child: Row(
@@ -976,7 +973,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     color: Colors.black,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
                   content,
                   style: TextStyle(
@@ -987,6 +984,17 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
                     height: 1.4,
                   ),
                 ),
+                if (description != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

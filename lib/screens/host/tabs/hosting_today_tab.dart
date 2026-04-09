@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import '../required_actions_screen.dart';
+import '../hosting_main_screen.dart';
 
 class HostingTodayTab extends StatefulWidget {
   const HostingTodayTab({super.key});
@@ -86,7 +87,10 @@ class _HostingTodayTabState extends State<HostingTodayTab> {
                   // CTA Button
                   ElevatedButton(
                     onPressed: () {
-                      // Navigate back to listing flow
+                      final mainState = HostingMainScreen.of(context);
+                      if (mainState != null) {
+                        mainState.setIndex(2); // Index for HostingListingsTab
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF7F7F7),

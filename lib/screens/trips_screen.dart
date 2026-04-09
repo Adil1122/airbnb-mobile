@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class TripsScreen extends StatelessWidget {
-  const TripsScreen({super.key});
+  final VoidCallback? onGetStarted;
+
+  const TripsScreen({super.key, this.onGetStarted});
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +70,7 @@ class TripsScreen extends StatelessWidget {
                 width: 200,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: onGetStarted,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE31C5F), // Airbnb Pink/Red
                     foregroundColor: Colors.white,

@@ -7,6 +7,7 @@ import '../menu/get_help_screen.dart';
 import '../menu/create_listing_screen.dart';
 import '../menu/refer_host_screen.dart';
 import '../menu/legal_screen.dart';
+import '../menu/host_profile_screen.dart';
 
 class HostingMenuTab extends StatelessWidget {
   const HostingMenuTab({super.key});
@@ -37,7 +38,15 @@ class HostingMenuTab extends StatelessWidget {
                 children: [
                   _buildHeaderIcon(Icons.notifications_outlined),
                   const SizedBox(width: 12),
-                  _buildAvatarIcon(),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HostProfileScreen()),
+                      );
+                    },
+                    child: _buildAvatarIcon(),
+                  ),
                 ],
               ),
             ],
