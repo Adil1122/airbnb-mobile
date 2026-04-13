@@ -95,29 +95,32 @@ class HostingMenuTab extends StatelessWidget {
           
           // Bottom Banner
           Positioned(
-            left: 16,
-            right: 16,
-            bottom: 16,
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const RequiredActionsScreen()),
+                  MaterialPageRoute(builder: (context) => RequiredActionsScreen()),
                 );
               },
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
+                      blurRadius: 15,
+                      offset: const Offset(0, -4),
                     ),
                   ],
-                  border: Border.all(color: Colors.grey.shade100),
+                  border: Border(top: BorderSide(color: Colors.grey.shade100)),
                 ),
                 child: Row(
                   children: [

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../required_actions_screen.dart';
 import '../menu/create_listing_screen.dart';
 import '../edit_listings_screen.dart';
+import '../listing_editor_screen.dart';
+import '../../profile/host/step1_screens.dart';
 
 class HostingListingsTab extends StatefulWidget {
   const HostingListingsTab({super.key});
@@ -16,6 +18,43 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
   bool _isEditing = false;
   final Set<int> _selectedIndices = {};
   final TextEditingController _searchController = TextEditingController();
+  
+  // Dynamic listings list
+  late List<Map<String, dynamic>> _listings;
+
+  @override
+  void initState() {
+    super.initState();
+    _listings = [
+      {
+        'id': 0,
+        'title': 'apartment in islamabad',
+        'location': 'Home in Islamabad, Islamabad Capital Territory',
+        'status': 'Action required',
+        'statusColor': const Color(0xFFFF385C),
+        'image': null,
+        'isPlaceholder': false,
+      },
+      {
+        'id': 1,
+        'title': 'Your House listing',
+        'location': 'Home',
+        'status': 'In progress',
+        'statusColor': Colors.orange,
+        'image': null,
+        'isPlaceholder': true,
+      },
+      {
+        'id': 2,
+        'title': 'Your House listing',
+        'location': 'Home',
+        'status': 'In progress',
+        'statusColor': Colors.orange,
+        'image': null,
+        'isPlaceholder': true,
+      },
+    ];
+  }
 
   @override
   void dispose() {
@@ -122,230 +161,225 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
               ),
         ),
       ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
-                if (_isGrid)
-                  _buildGridView()
-                else
-                  _buildListView(),
-                const SizedBox(height: 120), // Banner space
-              ],
-            ),
-          ),
-          
-          // Existing Bottom Banner (Hide when editing)
-          if (!_isEditing)
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16,
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const RequiredActionsScreen()),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                    border: Border.all(color: Colors.grey.shade100),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E1E1E),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 24),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Confirm a few key details',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Required to publish',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            if (_isGrid)
+              _buildGridView()
+            else
+              _buildListView(),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _isEditing ? _buildEditBar() : _buildActionBanner(),
+    );
+  }
 
-          // Bottom Edit Bar
-          if (_isEditing)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -4),
-                    ),
-                  ],
-                ),
-                child: SafeArea(
-                  top: false,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _isEditing = false;
-                            _selectedIndices.clear();
-                          });
-                        },
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: _selectedIndices.isEmpty 
-                          ? null 
-                          : () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                backgroundColor: Colors.transparent,
-                                builder: (context) => EditListingsScreen(
-                                  selectedCount: _selectedIndices.length,
-                                ),
-                              );
-                            },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          disabledBackgroundColor: Colors.grey.shade300,
-                        ),
-                        child: Text(
-                          'Edit ${_selectedIndices.length} listing${_selectedIndices.length == 1 ? '' : 's'}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
+  Widget _buildActionBanner() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const RequiredActionsScreen()),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
+            ),
+          ],
+          border: Border(top: BorderSide(color: Colors.grey.shade100)),
+        ),
+        child: SafeArea(
+           top: false,
+           child: Row(
+             children: [
+               Container(
+                 width: 48,
+                 height: 48,
+                 decoration: BoxDecoration(
+                   color: const Color(0xFF1E1E1E),
+                   borderRadius: BorderRadius.circular(8),
+                 ),
+                 child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 24),
+               ),
+               const SizedBox(width: 16),
+               const Expanded(
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     Text(
+                       'Confirm a few key details',
+                       style: TextStyle(
+                         fontSize: 16,
+                         fontWeight: FontWeight.bold,
+                       ),
+                     ),
+                     Text(
+                       'Required to publish',
+                       style: TextStyle(
+                         fontSize: 14,
+                         color: Colors.grey,
+                       ),
+                     ),
+                   ],
+                 ),
+               ),
+               Icon(Icons.chevron_right, color: Colors.grey.shade400),
+             ],
+           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isEditing = false;
+                  _selectedIndices.clear();
+                });
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.underline,
                 ),
               ),
             ),
-        ],
+            ElevatedButton(
+              onPressed: _selectedIndices.isEmpty 
+                ? null 
+                : () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => EditListingsScreen(
+                        selectedCount: _selectedIndices.length,
+                      ),
+                    );
+                  },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                disabledBackgroundColor: Colors.grey.shade300,
+              ),
+              child: Text(
+                'Edit ${_selectedIndices.length} listing${_selectedIndices.length == 1 ? '' : 's'}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildGridView() {
     return Column(
-      children: [
-        _buildListingCard(
-          index: 0,
-          title: 'apartment in islamabad',
-          location: 'Home in Islamabad, Islamabad Capital Territory',
-          status: 'Action required',
-          statusColor: const Color(0xFFFF385C),
-          image: 'https://cdn-icons-png.flaticon.com/512/3222/3222687.png',
-        ),
-        const SizedBox(height: 32),
-        _buildListingCard(
-          index: 1,
-          title: 'Your House listing',
-          location: 'Home',
-          status: 'In progress',
-          statusColor: Colors.orange,
-          isPlaceholder: true,
-        ),
-      ],
+      children: _listings.map((listing) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 32.0),
+          child: _buildListingCard(
+            index: listing['id'],
+            title: listing['title'],
+            location: listing['location'],
+            status: listing['status'],
+            statusColor: listing['statusColor'],
+            image: listing['image'],
+            isPlaceholder: listing['isPlaceholder'],
+          ),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildListView() {
+    final actionRequired = _listings.where((l) => l['status'] == 'Action required').toList();
+    final inProgress = _listings.where((l) => l['status'] == 'In progress').toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Action required',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 20),
-        _buildListRow(
-          index: 0,
-          title: 'apartment in islamabad',
-          location: 'Home in Islamabad, Islamabad Capital Territory',
-          statusColor: const Color(0xFFFF385C),
-          image: null, // Dark box as per screenshot
-          isPlaceholder: false, 
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'In progress',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 20),
-        _buildListRow(
-          index: 1,
-          title: 'Your House listing',
-          location: 'Home',
-          statusColor: Colors.orange,
-          isPlaceholder: true, // Light grey box
-        ),
-        const SizedBox(height: 12),
-        _buildListRow(
-          index: 2,
-          title: 'Your House listing',
-          location: 'Home',
-          statusColor: Colors.orange,
-          isPlaceholder: true, // Light grey box
-        ),
+        if (actionRequired.isNotEmpty) ...[
+          const Text(
+            'Action required',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          ...actionRequired.map((l) => Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: _buildListRow(
+              index: l['id'],
+              title: l['title'],
+              location: l['location'],
+              statusColor: l['statusColor'],
+              image: l['image'],
+              isPlaceholder: l['isPlaceholder'],
+            ),
+          )),
+          const SizedBox(height: 16),
+        ],
+        
+        if (inProgress.isNotEmpty) ...[
+          const Text(
+            'In progress',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          ...inProgress.map((l) => Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: _buildListRow(
+              index: l['id'],
+              title: l['title'],
+              location: l['location'],
+              statusColor: l['statusColor'],
+              image: l['image'],
+              isPlaceholder: l['isPlaceholder'],
+            ),
+          )),
+        ],
       ],
     );
   }
@@ -362,7 +396,14 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
     return GestureDetector(
       onTap: _isEditing 
         ? () => setState(() => isSelected ? _selectedIndices.remove(index) : _selectedIndices.add(index))
-        : null,
+        : isPlaceholder 
+            ? () => _showInProgressBottomSheet(context, index, title, location)
+            : () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ListingEditorScreen(listingTitle: title),
+                ),
+              ),
       child: Padding(
         padding: const EdgeInsets.only(bottom: 24.0),
         child: Row(
@@ -473,7 +514,14 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
     return GestureDetector(
       onTap: _isEditing 
         ? () => setState(() => isSelected ? _selectedIndices.remove(index) : _selectedIndices.add(index))
-        : null,
+        : isPlaceholder 
+            ? () => _showInProgressBottomSheet(context, index, title, location)
+            : () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ListingEditorScreen(listingTitle: title),
+                ),
+              ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -579,5 +627,108 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
         ],
       ),
     );
+  }
+
+  void _showInProgressBottomSheet(BuildContext context, int id, String title, String location) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(32),
+            topRight: Radius.circular(32),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Colors.black),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEBEBEB),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.camera_alt_outlined, color: Color(0xFFB0B0B0), size: 64),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              location,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  // Open category selection as per latest screenshot
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PropertyTypeSelectionScreen(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text('Edit listing', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                _removeListing(id);
+                Navigator.pop(context);
+              },
+              child: const Text(
+                'Remove listing',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _removeListing(int id) {
+    setState(() {
+      _listings.removeWhere((listing) => listing['id'] == id);
+    });
   }
 }
