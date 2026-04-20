@@ -1,24 +1,61 @@
 import 'package:flutter/material.dart';
 import '../models/listing.dart';
+import '../services/experience_service.dart';
+import 'experience_reservation_screen.dart';
 
-class ExperienceDetailsScreen extends StatelessWidget {
+class ExperienceDetailsScreen extends StatefulWidget {
   final Listing listing;
 
   const ExperienceDetailsScreen({super.key, required this.listing});
 
   @override
-  Widget build(BuildContext context) {
-    // Generate a fallback list of 4 images for the 2x2 grid
-    // If the listing doesn't have 4 images, we repeat available ones or use the main one.
-    List<String> gridImages = [];
-    if (listing.images.isNotEmpty) {
-      gridImages.addAll(listing.images);
+  State<ExperienceDetailsScreen> createState() => _ExperienceDetailsScreenState();
+}
+
+class _ExperienceDetailsScreenState extends State<ExperienceDetailsScreen> {
+  late Listing _currentListing;
+  bool _isLoading = true;
+  final _experienceService = ExperienceService();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentListing = widget.listing;
+    _loadDetails();
+  }
+
+  Future<void> _loadDetails() async {
+    final details = await _experienceService.fetchExperienceDetails(_currentListing.id);
+    if (details != null && mounted) {
+      setState(() {
+        _currentListing = details;
+        _isLoading = false;
+      });
+    } else {
+      if (mounted) setState(() => _isLoading = false);
     }
-    while (gridImages.length < 4) {
-      gridImages.add(listing.imageUrl);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFFE31C5F)),
+        ),
+      );
     }
 
-    final city = listing.fullAddress.split(',').first;
+    // Generate a fallback list of 4 images for the 2x2 grid
+    List<String> gridImages = [];
+    if (_currentListing.images.isNotEmpty) {
+      gridImages.addAll(_currentListing.images);
+    }
+    while (gridImages.length < 4) {
+      gridImages.add(_currentListing.imageUrl);
+    }
+
+    final city = _currentListing.subtitle.split(',').first;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F5F2),
@@ -30,7 +67,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          '$city · Landmarks',
+          '$city · Experience',
           style: const TextStyle(
             color: Colors.black,
             fontSize: 14,
@@ -102,7 +139,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Text(
-                    listing.title,
+                    _currentListing.title,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 28,
@@ -119,7 +156,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Text(
-                    listing.description,
+                    _currentListing.description,
                     textAlign: TextAlign.center,
                     maxLines: 4,
                     overflow: TextOverflow.ellipsis,
@@ -140,7 +177,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
                     const Icon(Icons.star, size: 16, color: Colors.black),
                     const SizedBox(width: 4),
                     Text(
-                      '${listing.rating} · ${listing.reviewsCount} reviews',
+                      '${_currentListing.rating} · ${_currentListing.reviewsCount} reviews',
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -187,7 +224,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Hosted by ${listing.hostName}',
+                              'Hosted by ${_currentListing.hostName}',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -237,7 +274,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              listing.fullAddress,
+                              _currentListing.fullAddress,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey.shade600,
@@ -329,7 +366,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
                 border: Border(top: BorderSide(color: Colors.grey.shade200)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: Colors.black.withOpacity(0.05),
                     offset: const Offset(0, -2),
                     blurRadius: 10,
                   ),
@@ -349,7 +386,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
                             children: [
                               const TextSpan(text: 'From '),
                               TextSpan(
-                                text: '\$${listing.price.toInt()}',
+                                text: '\$${_currentListing.price.toInt()}',
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               const TextSpan(text: ' / guest'),
@@ -368,7 +405,14 @@ class ExperienceDetailsScreen extends StatelessWidget {
                       ],
                     ),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ExperienceReservationScreen(listing: _currentListing),
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE31C5F),
                         foregroundColor: Colors.white,
@@ -557,7 +601,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
                     const Icon(Icons.star, size: 24, color: Colors.black),
                     const SizedBox(width: 8),
                     Text(
-                      '${listing.rating} · ${listing.reviewsCount} reviews',
+                      '${_currentListing.rating} · ${_currentListing.reviewsCount} reviews',
                       style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -715,7 +759,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withOpacity(0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -784,7 +828,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 4),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 10, offset: const Offset(0, 4)),
+                            BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4)),
                           ],
                         ),
                         child: const Center(
@@ -798,7 +842,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2)),
+                            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, 2)),
                           ],
                         ),
                         child: const Text('Meeting point', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
@@ -815,7 +859,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 6)],
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 6)],
                     ),
                     child: const Icon(Icons.open_in_full, size: 20, color: Colors.black),
                   ),
@@ -1015,12 +1059,12 @@ class ExperienceDetailsScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withOpacity(0.06),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04), // soft outline effect
+            color: Colors.black.withOpacity(0.04), // soft outline effect
             blurRadius: 4,
             offset: const Offset(0, 0),
             spreadRadius: 1,
@@ -1167,7 +1211,7 @@ class ExperienceDetailsScreen extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 20, offset: const Offset(0, 10)),
+                BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 10)),
               ],
               image: const DecorationImage(
                 image: NetworkImage('https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=300&q=80'), // proxy for a wax seal/award

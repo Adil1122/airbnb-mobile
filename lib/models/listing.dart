@@ -14,6 +14,32 @@ class Review {
     required this.date,
     required this.comment,
   });
+
+  factory Review.fromJson(Map<String, dynamic> json) {
+    try {
+      // Backend uses a 'user' object relation
+      final userData = json['user'] as Map<String, dynamic>?;
+      
+      return Review(
+        userName: userData?['name']?.toString() ?? json['userName']?.toString() ?? 'Guest',
+        userLocation: json['userLocation']?.toString() ?? 'Location verified',
+        userImageUrl: userData?['avatar']?.toString() ?? json['userImageUrl']?.toString() ?? 'https://via.placeholder.com/150',
+        rating: double.tryParse(json['rating']?.toString() ?? '0') ?? 0.0,
+        date: json['reviewDate']?.toString() ?? json['date']?.toString() ?? 'Recent',
+        comment: json['reviewText']?.toString() ?? json['comment']?.toString() ?? '',
+      );
+    } catch (e) {
+      print('ERROR: Exception in Review.fromJson: $e for JSON: $json');
+      return Review(
+        userName: 'Guest',
+        userLocation: 'Unknown',
+        userImageUrl: 'https://via.placeholder.com/150',
+        rating: 0.0,
+        date: 'Recent',
+        comment: 'Error parsing review',
+      );
+    }
+  }
 }
 
 class ReviewMention {
@@ -91,6 +117,61 @@ class Listing {
     this.checkOutTime = '11:00 AM',
     this.safetyInfo = const ['Smoke alarm', 'Carbon monoxide alarm'],
   });
+
+  factory Listing.fromJson(Map<String, dynamic> json) {
+    try {
+      final imagesList = (json['images'] as List? ?? []);
+      final imageUrls = imagesList
+          .map((img) => img is Map ? img['url']?.toString() : img.toString())
+          .where((url) => url != null && url.isNotEmpty)
+          .cast<String>()
+          .toList();
+
+      final mainImage = json['imageUrl']?.toString() ?? 
+                       (imageUrls.isNotEmpty ? imageUrls.first : 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=500&q=80');
+      
+      final rawReviews = json['reviews'];
+      final bool isReviewsList = rawReviews is List;
+      final int reviewsCountValue = int.tryParse(json['reviewCount']?.toString() ?? '0') ?? 
+                                   (rawReviews is List ? rawReviews.length : 0);
+
+      return Listing(
+        id: (json['id'] ?? '0').toString(),
+        imageUrl: mainImage,
+        images: imageUrls,
+        title: json['title']?.toString() ?? 'Untitled Property',
+        subtitle: (json['location'] ?? json['subtitle'])?.toString() ?? 'Location unknown',
+        price: double.tryParse(json['price']?.toString() ?? '0') ?? 0.0,
+        duration: json['duration']?.toString() ?? 
+                 (json['id'].toString().startsWith('e') ? 'per guest' : 
+                 (json['id'].toString().startsWith('s') ? 'per service' : 'per night')),
+        rating: double.tryParse(json['rating']?.toString() ?? '0') ?? 0.0,
+        isGuestFavorite: (double.tryParse(json['rating']?.toString() ?? '0') ?? 0) >= 4.0,
+        guests: int.tryParse(json['maxAdults']?.toString() ?? '2') ?? 2,
+        bedrooms: int.tryParse(json['bedrooms']?.toString() ?? '1') ?? 1,
+        beds: int.tryParse(json['beds']?.toString() ?? '1') ?? 1,
+        baths: int.tryParse(json['bathrooms']?.toString() ?? '1') ?? 1,
+        reviewsCount: reviewsCountValue,
+        hostName: json['hostName']?.toString() ?? 'Host',
+        hostDuration: 'Hosted since ${json['hostSince']?.toString() ?? 'recently'}',
+        description: json['description']?.toString() ?? '',
+        reviews: isReviewsList ? (rawReviews as List).map((rev) => Review.fromJson(rev)).toList() : [],
+        mentions: [],
+        amenities: (json['amenities'] as List? ?? []).map((a) {
+          if (a is Map) return a['name'].toString();
+          return a.toString();
+        }).toList(),
+        fullAddress: json['location']?.toString() ?? '',
+        hostBio: json['hostBio']?.toString() ?? '',
+        cancellationPolicy: json['cancellationPolicy']?.toString() ?? 'Flexible',
+        checkInTime: json['checkInTime']?.toString() ?? '1:00 PM - 6:00 PM',
+        checkOutTime: json['checkOutTime']?.toString() ?? '11:00 AM',
+      );
+    } catch (e) {
+      print('ERROR: Exception in Listing.fromJson: $e for JSON: $json');
+      rethrow;
+    }
+  }
 }
 
 class RecentlyViewedManager {

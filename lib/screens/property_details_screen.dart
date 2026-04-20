@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/listing.dart';
+import '../services/property_service.dart';
+import 'reservation_screen.dart';
 
 class PropertyDetailsScreen extends StatefulWidget {
   final Listing listing;
@@ -11,6 +13,10 @@ class PropertyDetailsScreen extends StatefulWidget {
 }
 
 class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
+  late Listing _currentListing;
+  bool _isLoading = true;
+  final _propertyService = PropertyService();
+
   int _currentImageIndex = 0;
   int _currentReviewIndex = 0;
   late PageController _pageController;
@@ -22,10 +28,27 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    _currentListing = widget.listing;
     _pageController = PageController();
     _reviewPageController = PageController(viewportFraction: 0.85);
     _mentionScrollController = ScrollController();
     _mentionScrollController.addListener(_scrollListener);
+    
+    _loadPropertyDetails();
+  }
+
+  Future<void> _loadPropertyDetails() async {
+    final details = await _propertyService.fetchPropertyDetails(_currentListing.id);
+    if (details != null && mounted) {
+      setState(() {
+        _currentListing = details;
+        _isLoading = false;
+      });
+    } else {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   void _scrollListener() {
@@ -46,7 +69,15 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final images = widget.listing.images.isNotEmpty ? widget.listing.images : [widget.listing.imageUrl];
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFFE61E4D)),
+        ),
+      );
+    }
+
+    final images = _currentListing.images.isNotEmpty ? _currentListing.images : [_currentListing.imageUrl];
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -77,6 +108,31 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                           return Image.network(
                             images[index],
                             fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                color: Colors.grey.shade200,
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFFE61E4D),
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey.shade300,
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.broken_image, color: Colors.grey, size: 40),
+                                    SizedBox(height: 8),
+                                    Text('Image not available', style: TextStyle(color: Colors.grey)),
+                                  ],
+                                ),
+                              );
+                            },
                           );
                         },
                       ),
@@ -88,9 +144,9 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                Colors.black.withValues(alpha: 0.3),
+                                Colors.black.withOpacity(0.3),
                                 Colors.transparent,
-                                Colors.black.withValues(alpha: 0.1),
+                                Colors.black.withOpacity(0.1),
                               ],
                               stops: const [0.0, 0.2, 1.0],
                             ),
@@ -164,7 +220,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.7),
+                            color: Colors.black.withOpacity(0.7),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -191,7 +247,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                     children: [
                       // --- Section 1: Title & Stats (Centralized) ---
                       Text(
-                        widget.listing.title,
+                        _currentListing.title,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 28,
@@ -203,7 +259,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        widget.listing.subtitle,
+                        _currentListing.subtitle,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 16, 
@@ -213,7 +269,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${widget.listing.guests} guests · ${widget.listing.bedrooms} bedroom · ${widget.listing.beds} bed · ${widget.listing.baths} bath',
+                        '${_currentListing.guests} guests · ${_currentListing.bedrooms} bedroom · ${_currentListing.beds} bed · ${_currentListing.baths} bath',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 15,
@@ -233,7 +289,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                               child: Column(
                                 children: [
                                   Text(
-                                    widget.listing.rating.toString(),
+                                    _currentListing.rating.toString(),
                                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 2),
@@ -281,7 +337,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                               child: Column(
                                 children: [
                                   Text(
-                                    '${widget.listing.reviewsCount}',
+                                    '${_currentListing.reviewsCount}',
                                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 2),
@@ -316,11 +372,11 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Hosted by ${widget.listing.hostName}',
+                                'Hosted by ${_currentListing.hostName}',
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                               ),
                               Text(
-                                widget.listing.hostDuration,
+                                _currentListing.hostDuration,
                                 style: const TextStyle(color: Color(0xFF717171), fontSize: 14),
                               ),
                             ],
@@ -358,23 +414,20 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
 
                       // --- Section 4: Description ---
                       Text(
-                        widget.listing.description,
+                        _currentListing.description,
                         style: const TextStyle(fontSize: 16, color: Color(0xFF222222), height: 1.5),
                       ),
+                      const SizedBox(height: 32),
 
-                      const SizedBox(height: 24),
-                      const Divider(thickness: 0.8),
-                      const SizedBox(height: 24),
-
-                      // --- Section 5: Guest Favorite (The "Image proper details" requested bellow Host) ---
-                      if (widget.listing.isGuestFavorite) ...[
+                      // --- Section 5: Guest Favorite ---
+                      if (_currentListing.rating >= 4.0) ...[
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Icon(Icons.eco, color: Color(0xFF91734F), size: 40),
                             const SizedBox(width: 12),
                             Text(
-                              widget.listing.rating.toString(),
+                              _currentListing.rating.toString(),
                               style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, height: 1),
                             ),
                             const SizedBox(width: 12),
@@ -412,7 +465,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       ],
                       
                       // --- Section 6: Guest reviews mention (NEW) ---
-                      if (widget.listing.mentions.isNotEmpty) ...[
+                      if (_currentListing.mentions.isNotEmpty) ...[
                         const SizedBox(height: 32),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 2),
@@ -428,7 +481,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       ],
 
                       // --- Section 7: User Reviews Carousel (NEW) ---
-                      if (widget.listing.reviews.isNotEmpty) ...[
+                      if (_currentListing.reviews.isNotEmpty) ...[
                         const SizedBox(height: 32),
                         _buildReviewsCarousel(),
                         const SizedBox(height: 24),
@@ -436,7 +489,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
-                            onPressed: () {},
+                            onPressed: () => _showAllReviewsSheet(),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               side: const BorderSide(color: Color(0xFF222222)),
@@ -444,7 +497,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                               backgroundColor: const Color(0xFFF7F7F7),
                             ),
                             child: Text(
-                              'Show all ${widget.listing.reviewsCount} reviews',
+                              'Show all ${_currentListing.reviewsCount} reviews',
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 16,
@@ -465,7 +518,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                         style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
                       ),
                       const SizedBox(height: 24),
-                      ...widget.listing.amenities.take(5).map((amenity) => Padding(
+                      ..._currentListing.amenities.take(5).map((amenity) => Padding(
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Row(
                           children: [
@@ -482,14 +535,14 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: () {},
+                          onPressed: () => _showAllAmenitiesSheet(),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             side: const BorderSide(color: Color(0xFF222222)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
                           child: Text(
-                            'Show all ${widget.listing.amenities.length} amenities',
+                            'Show all ${_currentListing.amenities.length} amenities',
                             style: const TextStyle(
                               color: Colors.black,
                               fontSize: 16,
@@ -510,7 +563,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        widget.listing.fullAddress,
+                        _currentListing.fullAddress,
                         style: const TextStyle(fontSize: 16, color: Color(0xFF222222)),
                       ),
                       const SizedBox(height: 24),
@@ -572,7 +625,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
+                              color: Colors.black.withOpacity(0.08),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
@@ -609,7 +662,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
-                                        widget.listing.hostName,
+                                        _currentListing.hostName,
                                         style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                                       ),
                                       const Text(
@@ -676,26 +729,26 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       
                       const SizedBox(height: 32),
                       
-                      if (widget.listing.hostSchool.isNotEmpty) ...[
+                      if (_currentListing.hostSchool.isNotEmpty) ...[
                         Row(
                           children: [
                             const Icon(Icons.school_outlined, color: Colors.black, size: 28),
                             const SizedBox(width: 16),
                             Text(
-                              'Where I went to school: ${widget.listing.hostSchool}',
+                              'Where I went to school: ${_currentListing.hostSchool}',
                               style: const TextStyle(fontSize: 16, color: Color(0xFF222222)),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
                       ],
-                      if (widget.listing.hostWork.isNotEmpty) ...[
+                      if (_currentListing.hostWork.isNotEmpty) ...[
                         Row(
                           children: [
                             const Icon(Icons.business_center_outlined, color: Colors.black, size: 28),
                             const SizedBox(width: 16),
                             Text(
-                              'My work: ${widget.listing.hostWork}',
+                              'My work: ${_currentListing.hostWork}',
                               style: const TextStyle(fontSize: 16, color: Color(0xFF222222)),
                             ),
                           ],
@@ -703,9 +756,9 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                         const SizedBox(height: 32),
                       ],
                       
-                      if (widget.listing.hostBio.isNotEmpty) ...[
+                      if (_currentListing.hostBio.isNotEmpty) ...[
                         Text(
-                          widget.listing.hostBio,
+                          _currentListing.hostBio,
                           style: const TextStyle(fontSize: 16, height: 1.5, color: Color(0xFF222222)),
                         ),
                         const SizedBox(height: 32),
@@ -717,12 +770,12 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        "Response rate: ${widget.listing.hostResponseRate}",
+                        "Response rate: ${_currentListing.hostResponseRate}",
                         style: const TextStyle(fontSize: 16, color: Color(0xFF222222)),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "Responds ${widget.listing.hostResponseTime}",
+                        "Responds ${_currentListing.hostResponseTime}",
                         style: const TextStyle(fontSize: 16, color: Color(0xFF222222)),
                       ),
 
@@ -752,7 +805,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.security, color: const Color(0xFFE31C5F).withValues(alpha: 0.5), size: 32),
+                          Icon(Icons.security, color: const Color(0xFFE31C5F).withOpacity(0.5), size: 32),
                           const SizedBox(width: 16),
                           const Expanded(
                             child: Text(
@@ -816,7 +869,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  widget.listing.cancellationPolicy,
+                                  _currentListing.cancellationPolicy,
                                   style: const TextStyle(fontSize: 14, color: Color(0xFF717171), height: 1.4),
                                 ),
                               ],
@@ -843,7 +896,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  "Check-in: ${widget.listing.checkInTime}\nCheckout before ${widget.listing.checkOutTime}\n${widget.listing.guests} guests maximum",
+                                  "Check-in: ${_currentListing.checkInTime}\nCheckout before ${_currentListing.checkOutTime}\n${_currentListing.guests} guests maximum",
                                   style: const TextStyle(fontSize: 14, color: Color(0xFF717171), height: 1.4),
                                 ),
                               ],
@@ -870,7 +923,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  widget.listing.safetyInfo.join('\n'),
+                                  _currentListing.safetyInfo.join('\n'),
                                   style: const TextStyle(fontSize: 14, color: Color(0xFF717171), height: 1.4),
                                 ),
                               ],
@@ -928,7 +981,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                 color: Colors.white,
                 border: const Border(top: BorderSide(color: Color(0xFFDDDDDD), width: 1)),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, -5)),
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, -5)),
                 ],
               ),
               child: Row(
@@ -938,9 +991,9 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        '\$41',
-                        style: TextStyle(
+                      Text(
+                        '\$${_currentListing.price.toInt()}',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
@@ -952,13 +1005,20 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                         'For 2 nights · Apr 3 – 5',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.black.withValues(alpha: 0.6),
+                          color: Colors.black.withOpacity(0.6),
                         ),
                       ),
                     ],
                   ),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ReservationScreen(listing: _currentListing),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE31C5F),
                       foregroundColor: Colors.white,
@@ -984,28 +1044,26 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
   }
 
   IconData _getAmenityIcon(String name) {
-    switch (name.toLowerCase()) {
-      case 'kitchen':
-        return Icons.kitchen;
-      case 'wifi':
-        return Icons.wifi;
-      case 'dedicated workspace':
-        return Icons.desk;
-      case 'free parking on premises':
-        return Icons.directions_car;
-      case 'pets allowed':
-        return Icons.pets;
-      case 'air conditioning':
-        return Icons.ac_unit;
-      case 'tv':
-        return Icons.tv;
-      case 'geyser/heater':
-        return Icons.hot_tub;
-      case 'washer':
-        return Icons.local_laundry_service;
-      default:
-        return Icons.done;
-    }
+    final n = name.toLowerCase();
+    if (n.contains('kitchen')) return Icons.restaurant_outlined;
+    if (n.contains('wifi')) return Icons.wifi;
+    if (n.contains('workspace')) return Icons.desk_outlined;
+    if (n.contains('parking')) return Icons.directions_car_filled_outlined;
+    if (n.contains('pets')) return Icons.pets_outlined;
+    if (n.contains('air conditioning') || n.contains('ac')) return Icons.ac_unit_outlined;
+    if (n.contains('tv')) return Icons.tv_outlined;
+    if (n.contains('heater') || n.contains('geyser')) return Icons.hot_tub_outlined;
+    if (n.contains('washer') || n.contains('laundry')) return Icons.local_laundry_service_outlined;
+    if (n.contains('pool')) return Icons.pool_outlined;
+    if (n.contains('gym')) return Icons.fitness_center_outlined;
+    if (n.contains('breakfast')) return Icons.free_breakfast_outlined;
+    if (n.contains('shampoo')) return Icons.soap_outlined;
+    if (n.contains('hair dryer')) return Icons.wind_power_outlined;
+    if (n.contains('iron')) return Icons.iron_outlined;
+    if (n.contains('hangers')) return Icons.checkroom_outlined;
+    if (n.contains('safe')) return Icons.enhanced_encryption_outlined;
+    if (n.contains('security')) return Icons.security_outlined;
+    return Icons.done_all_outlined;
   }
 
   Widget _buildReviewMentions() {
@@ -1075,7 +1133,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
   }
 
   Widget _buildReviewsCarousel() {
-    final reviews = widget.listing.reviews;
+    final reviews = _currentListing.reviews;
     if (reviews.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
@@ -1222,6 +1280,190 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showAllAmenitiesSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (_, controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'What this place offers',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: controller,
+                      itemCount: _currentListing.amenities.length,
+                      separatorBuilder: (_, __) => const Divider(height: 32),
+                      itemBuilder: (context, index) {
+                        final amenity = _currentListing.amenities[index];
+                        return Row(
+                          children: [
+                            Icon(_getAmenityIcon(amenity), size: 28),
+                            const SizedBox(width: 16),
+                            Text(
+                              amenity,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showAllReviewsSheet() {
+    // Similar implementation for reviews
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (_, controller) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '${_currentListing.reviewsCount} reviews',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: controller,
+                      itemCount: _currentListing.reviews.length,
+                      separatorBuilder: (_, __) => const Divider(height: 32),
+                      itemBuilder: (context, index) {
+                        final review = _currentListing.reviews[index];
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundImage: NetworkImage(review.userImageUrl),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(review.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    Text(review.userLocation, style: const TextStyle(color: Colors.grey)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Row(
+                                  children: List.generate(5, (idx) => Icon(Icons.star, size: 12, color: idx < review.rating ? Colors.black : Colors.grey.shade300)),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(review.date, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(review.comment, style: const TextStyle(fontSize: 15, height: 1.4)),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

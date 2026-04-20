@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import '../screens/search_screen.dart';
+import '../models/listing.dart';
 
 class SearchBarWidget extends StatelessWidget {
-  const SearchBarWidget({super.key});
+  final Function(List<Listing>, int)? onSearchResults;
+  
+  const SearchBarWidget({super.key, this.onSearchResults});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
       child: GestureDetector(
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          final data = await Navigator.push<Map<String, dynamic>>(
             context,
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) => const SearchScreen(),
@@ -19,24 +22,27 @@ class SearchBarWidget extends StatelessWidget {
               },
             ),
           );
+          
+          if (data != null && onSearchResults != null) {
+            onSearchResults!(
+              data['results'] as List<Listing>,
+              data['categoryIndex'] as int,
+            );
+          }
         },
         child: Hero(
           tag: 'search_bar',
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(32),
+              borderRadius: BorderRadius.circular(40),
+              border: Border.all(color: Colors.grey.shade200, width: 0.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
@@ -44,15 +50,56 @@ class SearchBarWidget extends StatelessWidget {
               color: Colors.transparent,
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: Colors.black87),
+                  const Icon(Icons.search, color: Colors.black, size: 24),
                   const SizedBox(width: 12),
-                  Text(
-                    'Start your search',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Where to?',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(height: 1),
+                        Row(
+                          children: [
+                            Text(
+                              'Anywhere',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text('•', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            ),
+                            Text(
+                              'Any week',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Text('•', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            ),
+                            Text(
+                              'Add guests',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: const Icon(Icons.tune_rounded, size: 18, color: Colors.black87),
                   ),
                 ],
               ),

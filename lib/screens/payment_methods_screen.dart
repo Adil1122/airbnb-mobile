@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../../services/payment_service.dart';
-import '../../../../../models/payment_method_model.dart';
+import '../services/payment_service.dart';
+import '../models/payment_method_model.dart';
 
 class PaymentMethodsScreen extends StatefulWidget {
   const PaymentMethodsScreen({super.key});
@@ -44,8 +44,12 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black, size: 28),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Payment methods',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
         ),
       ),
       body: _isLoading
@@ -53,114 +57,24 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
           : RefreshIndicator(
               onRefresh: _loadPaymentMethods,
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                padding: const EdgeInsets.all(24),
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Payment methods',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          'Add a payment method using our secure payment system, then start planning your next trip.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.black87,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
+                  const Text(
+                    'Your saved cards',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
-
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Securely manage your payment methods for faster checkout.',
+                    style: TextStyle(fontSize: 15, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 32),
                   if (_methods.isEmpty)
                     _buildEmptyState()
                   else
                     ..._methods.map((method) => _buildPaymentMethodCard(method)),
-
                   const SizedBox(height: 24),
-                  
-                  // Add Payment Method Button
-                  ElevatedButton(
-                    onPressed: () => _showAddCardSimulation(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF222222),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Add payment method',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 48),
-                  
-                  // Safe Payment Info Card
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFDDDDDD), width: 1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.credit_card_outlined,
-                          color: Color(0xFFFF385C),
-                          size: 48,
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Make all payments through Airbnb',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        RichText(
-                          text: const TextSpan(
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                              height: 1.5,
-                            ),
-                            children: [
-                              TextSpan(text: 'Always pay and communicate through Airbnb to ensure you\'re protected under our '),
-                              TextSpan(
-                                text: 'Terms of Service',
-                                style: TextStyle(decoration: TextDecoration.underline, fontWeight: FontWeight.w600, color: Colors.black),
-                              ),
-                              TextSpan(text: ', '),
-                              TextSpan(
-                                text: 'Payments Terms of Service',
-                                style: TextStyle(decoration: TextDecoration.underline, fontWeight: FontWeight.w600, color: Colors.black),
-                              ),
-                              TextSpan(text: ', cancellation, and other safeguards.'),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 48),
+                  _buildAddButton(),
                 ],
               ),
             ),
@@ -173,7 +87,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
@@ -218,10 +132,40 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
 
   Widget _buildEmptyState() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: const Text(
-        'No saved payment methods.',
-        style: TextStyle(fontSize: 14, color: Colors.black54),
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        children: [
+          Icon(Icons.credit_card_off_outlined, size: 64, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          const Text(
+            'No cards saved yet',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Add a payment method to get started.',
+            style: TextStyle(fontSize: 14, color: Colors.black54),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddButton() {
+    return InkWell(
+      onTap: () => _showAddCardSimulation(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.black, width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Center(
+          child: Text(
+            'Add payment method',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
       ),
     );
   }
@@ -231,7 +175,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
       builder: (context) => Padding(
@@ -250,15 +194,15 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-            _buildTextField('Card number', '0000 0000 0000 0000'),
-            Row(
+            _buildTextField('Card number', 'xxxx xxxx xxxx xxxx'),
+            const Row(
               children: [
                 Expanded(child: _buildTextField('Expiration', 'MM / YY')),
-                const SizedBox(width: 16),
+                SizedBox(width: 16),
                 Expanded(child: _buildTextField('CVV', '123')),
               ],
             ),
-            _buildTextField('Country/Region', 'Pakistan'),
+            _buildTextField('Country/Region', 'United States'),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
@@ -267,7 +211,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                 onPressed: () {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Securely adding card via Stripe...')),
+                    const SnackBar(content: Text('In a real app, this would use Stripe SDK.')),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -285,7 +229,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     );
   }
 
-  Widget _buildTextField(String label, String hint) {
+  static Widget _buildTextField(String label, String hint) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
@@ -305,4 +249,3 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     );
   }
 }
-

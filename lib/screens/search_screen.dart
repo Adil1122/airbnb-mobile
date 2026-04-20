@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import '../models/listing.dart';
+import '../services/property_service.dart';
+import '../services/experience_service.dart';
+import '../services/service_service.dart';
+import '../services/destination_service.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -16,6 +21,30 @@ class _SearchScreenState extends State<SearchScreen> {
   int _children = 0;
   int _infants = 0;
   int _pets = 0;
+
+  final _locationController = TextEditingController();
+  final _propertyService = PropertyService();
+  final _experienceService = ExperienceService();
+  final _serviceService = ServiceService();
+  final _destinationService = DestinationService();
+  
+  bool _isSearching = false;
+  List<Destination> _destinations = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDestinations();
+  }
+
+  Future<void> _loadDestinations() async {
+    final results = await _destinationService.fetchDestinations();
+    if (mounted) {
+      setState(() {
+        _destinations = results;
+      });
+    }
+  }
 
   final List<Map<String, dynamic>> _categories = [
     {'label': 'Homes', 'icon': Icons.home_filled},
@@ -176,9 +205,10 @@ class _SearchScreenState extends State<SearchScreen> {
               children: [
                 const Icon(Icons.search, color: Colors.black, size: 22),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: TextField(
-                    decoration: InputDecoration(
+                    controller: _locationController,
+                    decoration: const InputDecoration(
                       hintText: 'Peshawar, Khyber Pakhtunkhwa',
                       hintStyle: TextStyle(color: Colors.black, fontSize: 16),
                       border: InputBorder.none,
@@ -190,7 +220,10 @@ class _SearchScreenState extends State<SearchScreen> {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   icon: const Icon(Icons.cancel, color: Colors.black26, size: 20),
-                  onPressed: () {},
+                  onPressed: () {
+                    _locationController.clear();
+                    setState(() {});
+                  },
                 ),
               ],
             ),
@@ -202,17 +235,7 @@ class _SearchScreenState extends State<SearchScreen> {
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
             ),
             const SizedBox(height: 20),
-            if (isExperience) ...[
-              _buildSuggestionItem(Icons.architecture, 'New York', 'For its stunning architecture', const Color(0xFFF2F7FB), Colors.brown),
-              _buildSuggestionItem(Icons.temple_buddhist, 'Bangkok, Thailand', 'For its top-notch dining', const Color(0xFFF2F9F3), Colors.green),
-              _buildSuggestionItem(Icons.nightlife, 'Istanbul, Türkiye', 'For its bustling nightlife', const Color(0xFFFEF4F4), Colors.blueGrey),
-              _buildSuggestionItem(Icons.public, 'Mississauga, Canada', 'For a trip abroad', const Color(0xFFF2F7FB), Colors.blue),
-            ] else ...[
-              _buildSuggestionItem(Icons.near_me, 'Nearby', 'Find what\'s around you', const Color(0xFFF2F7FB), Colors.blue),
-              _buildSuggestionItem(Icons.house_siding, 'Nathia Gali, Khyber Pakhtunkhwa', 'Near you', const Color(0xFFFEF4F4), Colors.redAccent),
-              _buildSuggestionItem(Icons.location_city, 'Lahore, Punjab', 'Popular with travelers near you', const Color(0xFFF2F9F3), Colors.green),
-              _buildSuggestionItem(Icons.waves, 'Peshawar, Khyber Pakhtunkhwa', 'A hidden gem', const Color(0xFFF2F7FB), Colors.lightBlue),
-            ],
+            ..._destinations.map((dest) => _buildSuggestionItemFromBackend(dest)),
           ] else
             const SizedBox(height: 12),
         ],
@@ -220,11 +243,44 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  Widget _buildSuggestionItemFromBackend(Destination dest) {
+    IconData icon;
+    Color iconColor;
+    Color bgColor;
+
+    switch (dest.type) {
+      case 'nearby':
+        icon = Icons.near_me;
+        iconColor = Colors.blue;
+        bgColor = const Color(0xFFF2F7FB);
+        break;
+      case 'trending':
+        icon = Icons.trending_up;
+        iconColor = Colors.redAccent;
+        bgColor = const Color(0xFFFEF4F4);
+        break;
+      case 'popular':
+        icon = Icons.location_city;
+        iconColor = Colors.green;
+        bgColor = const Color(0xFFF2F9F3);
+        break;
+      default:
+        icon = Icons.location_on;
+        iconColor = Colors.orange;
+        bgColor = const Color(0xFFFFF7F0);
+    }
+
+    return _buildSuggestionItem(icon, dest.title, dest.subtitle, bgColor, iconColor);
+  }
+
   Widget _buildSuggestionItem(IconData icon, String title, String subtitle, Color bgColor, Color iconColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
-        onTap: () => setState(() => _activeStep = 1),
+        onTap: () {
+          _locationController.text = title;
+          setState(() => _activeStep = 1);
+        },
         child: Row(
           children: [
             Container(
@@ -666,7 +722,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             )
           : ElevatedButton(
-              onPressed: () {},
+              onPressed: _isSearching ? null : _performSearch,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFE31C5F),
                 foregroundColor: Colors.white,
@@ -674,7 +730,9 @@ class _SearchScreenState extends State<SearchScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
-              child: const Row(
+              child: _isSearching 
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Row(
                 children: [
                   Icon(Icons.search, size: 22),
                   SizedBox(width: 8),
@@ -688,5 +746,62 @@ class _SearchScreenState extends State<SearchScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _performSearch() async {
+    setState(() => _isSearching = true);
+    
+    try {
+      List<Listing> results = [];
+      String location = _locationController.text.trim();
+      
+      // Cleanup placeholders
+      if (location == 'Search destinations' || location == 'Peshawar, Khyber Pakhtunkhwa') {
+        location = '';
+      }
+
+      print('DEBUG: Performing search - category: $_selectedCategoryIndex, location: "$location", adults: $_adults, children: $_children, infants: $_infants, pets: $_pets');
+
+      if (_selectedCategoryIndex == 0) {
+        results = await _propertyService.searchProperties(
+          location: location,
+          adults: _adults > 0 ? _adults : null,
+          children: _children > 0 ? _children : null,
+        );
+      } else if (_selectedCategoryIndex == 1) {
+        results = await _experienceService.searchExperiences(
+          location: location,
+          adults: _adults > 0 ? _adults : null,
+          children: _children > 0 ? _children : null,
+        );
+      } else {
+        results = await _serviceService.searchServices(
+          location: location,
+          adults: _adults > 0 ? _adults : null,
+          children: _children > 0 ? _children : null,
+        );
+      }
+
+      print('DEBUG: Search returned ${results.length} results');
+
+      if (mounted) {
+        Navigator.pop(context, {
+          'results': results,
+          'categoryIndex': _selectedCategoryIndex,
+        });
+      }
+    } catch (e) {
+      print('Search error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Search failed: ${e.toString().split(':').last.trim()}'),
+            backgroundColor: const Color(0xFFE61E4D),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSearching = false);
+    }
   }
 }

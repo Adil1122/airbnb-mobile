@@ -19,15 +19,18 @@ class CategoryTabs extends StatelessWidget {
   });
 
   static final List<CategoryItem> _categories = [
-    CategoryItem(label: 'Homes', icon: Icons.home),
-    CategoryItem(label: 'Experiences', icon: Icons.celebration, isNew: true),
-    CategoryItem(label: 'Services', icon: Icons.room_service, isNew: true),
+    CategoryItem(label: 'Homes', icon: Icons.home_outlined),
+    CategoryItem(label: 'Experiences', icon: Icons.celebration_outlined, isNew: true),
+    CategoryItem(label: 'Services', icon: Icons.room_service_outlined, isNew: true),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 90,
+    return Container(
+      height: 100,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+      ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -40,34 +43,46 @@ class CategoryTabs extends StatelessWidget {
             onTap: () {
               onTabSelected(index);
             },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: isSelected ? Colors.black : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      Icon(
-                        category.icon,
-                        color: isSelected ? Colors.black : Colors.grey.shade600,
-                        size: 28,
+                      Opacity(
+                        opacity: isSelected ? 1.0 : 0.5,
+                        child: Icon(
+                          category.icon,
+                          color: Colors.black,
+                          size: 30,
+                        ),
                       ),
                       if (category.isNew)
                         Positioned(
-                          right: -32,
-                          top: -6,
+                          right: -30,
+                          top: -4,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2C4164),
-                              borderRadius: BorderRadius.circular(12),
+                              color: const Color(0xFFE61E4D),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Text(
                               'NEW',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 9,
+                                fontSize: 8,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -79,17 +94,13 @@ class CategoryTabs extends StatelessWidget {
                   Text(
                     category.label,
                     style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? Colors.black : Colors.grey.shade600,
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      color: isSelected ? Colors.black : Colors.black.withOpacity(0.5),
+                      letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 2,
-                    width: 40,
-                    color: isSelected ? Colors.black : Colors.transparent,
-                  )
+                  const SizedBox(height: 12),
                 ],
               ),
             ),

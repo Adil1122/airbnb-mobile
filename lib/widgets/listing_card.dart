@@ -86,7 +86,7 @@ class ListingCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
+                              color: Colors.black.withOpacity(0.1),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -111,7 +111,7 @@ class ListingCard extends StatelessWidget {
                       size: 26,
                       shadows: [
                         Shadow(
-                          color: Colors.black.withValues(alpha: 0.6),
+                          color: Colors.black.withOpacity(0.6),
                           blurRadius: 12,
                         )
                       ],

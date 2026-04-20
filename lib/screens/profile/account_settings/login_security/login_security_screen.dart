@@ -386,7 +386,7 @@ class _LoginSecurityScreenState extends State<LoginSecurityScreen> with SingleTi
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.pink.withValues(alpha: 0.1),
+                        color: Colors.pink.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
