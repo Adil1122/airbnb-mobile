@@ -1,3 +1,5 @@
+import 'package:airbnb_mobile/utils/api_config.dart';
+
 class Review {
   final String userName;
   final String userLocation;
@@ -20,10 +22,15 @@ class Review {
       // Backend uses a 'user' object relation
       final userData = json['user'] as Map<String, dynamic>?;
       
+      String avatar = userData?['avatar']?.toString() ?? json['userImageUrl']?.toString() ?? 'https://via.placeholder.com/150';
+      if (avatar.startsWith('/uploads')) {
+        avatar = '${ApiConfig.baseUrl}$avatar';
+      }
+      
       return Review(
         userName: userData?['name']?.toString() ?? json['userName']?.toString() ?? 'Guest',
         userLocation: json['userLocation']?.toString() ?? 'Location verified',
-        userImageUrl: userData?['avatar']?.toString() ?? json['userImageUrl']?.toString() ?? 'https://via.placeholder.com/150',
+        userImageUrl: avatar,
         rating: double.tryParse(json['rating']?.toString() ?? '0') ?? 0.0,
         date: json['reviewDate']?.toString() ?? json['date']?.toString() ?? 'Recent',
         comment: json['reviewText']?.toString() ?? json['comment']?.toString() ?? '',
@@ -71,6 +78,7 @@ class Listing {
   final List<ReviewMention> mentions;
   final List<String> amenities;
   final String fullAddress;
+  final String hostImageUrl;
   
   // Host detail fields
   final String hostSchool;
@@ -85,8 +93,27 @@ class Listing {
   final String checkOutTime;
   final List<String> safetyInfo;
 
+  // New Hosting Fields
+  final double? weekendPrice;
+  final int weeklyDiscount;
+  final String bookingType;
+  final String? checkInMethod;
+  final String? checkInInstructions;
+  final String? wifiNetwork;
+  final String? wifiPassword;
+  final String? houseManual;
+  final String? checkoutInstructions;
+  final String? interactionPreference;
+
+  final String? status;
+  final String propertyType;
+  final int? hostId;
+
   const Listing({
     required this.id,
+    this.status,
+    this.propertyType = 'Apartment',
+    this.hostId,
     required this.imageUrl,
     this.images = const [],
     required this.title,
@@ -107,6 +134,7 @@ class Listing {
     this.mentions = const [],
     this.amenities = const [],
     this.fullAddress = 'Lahore, Pakistan',
+    this.hostImageUrl = '',
     this.hostSchool = '',
     this.hostWork = '',
     this.hostBio = '',
@@ -116,24 +144,53 @@ class Listing {
     this.checkInTime = '1:00 PM - 6:00 PM',
     this.checkOutTime = '11:00 AM',
     this.safetyInfo = const ['Smoke alarm', 'Carbon monoxide alarm'],
+    this.weekendPrice,
+    this.weeklyDiscount = 0,
+    this.bookingType = 'request',
+    this.checkInMethod,
+    this.checkInInstructions,
+    this.wifiNetwork,
+    this.wifiPassword,
+    this.houseManual,
+    this.checkoutInstructions,
+    this.interactionPreference,
   });
 
   factory Listing.fromJson(Map<String, dynamic> json) {
     try {
       final imagesList = (json['images'] as List? ?? []);
       final imageUrls = imagesList
-          .map((img) => img is Map ? img['url']?.toString() : img.toString())
-          .where((url) => url != null && url.isNotEmpty)
+          .map((img) {
+            String url = img is Map ? img['url']?.toString() ?? '' : img.toString();
+            if (url.startsWith('/uploads')) {
+              return '${ApiConfig.baseUrl}$url';
+            }
+            return url;
+          })
+          .where((url) => url.isNotEmpty)
           .cast<String>()
           .toList();
 
-      final mainImage = json['imageUrl']?.toString() ?? 
-                       (imageUrls.isNotEmpty ? imageUrls.first : 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=500&q=80');
+      String mainImage = json['imageUrl']?.toString() ?? '';
+      if (mainImage.startsWith('/uploads')) {
+        mainImage = '${ApiConfig.baseUrl}$mainImage';
+      } else if (mainImage.isEmpty) {
+        mainImage = imageUrls.isNotEmpty ? imageUrls.first : 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=500&q=80';
+      }
       
       final rawReviews = json['reviews'];
       final bool isReviewsList = rawReviews is List;
       final int reviewsCountValue = int.tryParse(json['reviewCount']?.toString() ?? '0') ?? 
                                    (rawReviews is List ? rawReviews.length : 0);
+
+      final hostData = json['host'] as Map<String, dynamic>?;
+      String hName = hostData?['name']?.toString() ?? json['hostName']?.toString() ?? 'Host';
+      String hBio = hostData?['hostBio']?.toString() ?? json['hostBio']?.toString() ?? '';
+      String hImage = hostData?['avatar']?.toString() ?? json['hostImage']?.toString() ?? '';
+      
+      if (hImage.startsWith('/uploads')) {
+        hImage = '${ApiConfig.baseUrl}$hImage';
+      }
 
       return Listing(
         id: (json['id'] ?? '0').toString(),
@@ -152,8 +209,8 @@ class Listing {
         beds: int.tryParse(json['beds']?.toString() ?? '1') ?? 1,
         baths: int.tryParse(json['bathrooms']?.toString() ?? '1') ?? 1,
         reviewsCount: reviewsCountValue,
-        hostName: json['hostName']?.toString() ?? 'Host',
-        hostDuration: 'Hosted since ${json['hostSince']?.toString() ?? 'recently'}',
+        hostName: hName,
+        hostDuration: 'Hosted since ${hostData?['hostSince']?.toString() ?? json['hostSince']?.toString() ?? 'recently'}',
         description: json['description']?.toString() ?? '',
         reviews: isReviewsList ? (rawReviews as List).map((rev) => Review.fromJson(rev)).toList() : [],
         mentions: [],
@@ -162,10 +219,24 @@ class Listing {
           return a.toString();
         }).toList(),
         fullAddress: json['location']?.toString() ?? '',
-        hostBio: json['hostBio']?.toString() ?? '',
+        hostImageUrl: hImage,
+        hostBio: hBio,
         cancellationPolicy: json['cancellationPolicy']?.toString() ?? 'Flexible',
         checkInTime: json['checkInTime']?.toString() ?? '1:00 PM - 6:00 PM',
         checkOutTime: json['checkOutTime']?.toString() ?? '11:00 AM',
+        weekendPrice: double.tryParse(json['weekendPrice']?.toString() ?? ''),
+        weeklyDiscount: int.tryParse(json['weeklyDiscount']?.toString() ?? '0') ?? 0,
+        bookingType: json['bookingType']?.toString() ?? 'request',
+        checkInMethod: json['checkInMethod']?.toString(),
+        checkInInstructions: json['checkInInstructions']?.toString(),
+        wifiNetwork: json['wifiNetwork']?.toString(),
+        wifiPassword: json['wifiPassword']?.toString(),
+        houseManual: json['houseManual']?.toString(),
+        checkoutInstructions: json['checkoutInstructions']?.toString(),
+        interactionPreference: json['interactionPreference']?.toString(),
+        status: json['status']?.toString(),
+        propertyType: json['type']?.toString() ?? 'Apartment',
+        hostId: int.tryParse(json['hostId']?.toString() ?? json['host_id']?.toString() ?? ''),
       );
     } catch (e) {
       print('ERROR: Exception in Listing.fromJson: $e for JSON: $json');

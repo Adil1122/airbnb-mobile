@@ -4,8 +4,9 @@ import '../models/listing.dart';
 
 class SearchBarWidget extends StatelessWidget {
   final Function(List<Listing>, int)? onSearchResults;
+  final int initialCategoryIndex;
   
-  const SearchBarWidget({super.key, this.onSearchResults});
+  const SearchBarWidget({super.key, this.onSearchResults, this.initialCategoryIndex = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +17,7 @@ class SearchBarWidget extends StatelessWidget {
           final data = await Navigator.push<Map<String, dynamic>>(
             context,
             PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) => const SearchScreen(),
+              pageBuilder: (context, animation, secondaryAnimation) => SearchScreen(initialCategoryIndex: initialCategoryIndex),
               transitionsBuilder: (context, animation, secondaryAnimation, child) {
                 return FadeTransition(opacity: animation, child: child);
               },

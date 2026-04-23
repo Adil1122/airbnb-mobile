@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../models/listing.dart';
+import '../../services/host_service.dart';
 import 'editor/settings/finish_up_publish_screen.dart';
+import '../../services/auth_service.dart';
+import '../../models/user_model.dart';
 import 'editor/your_space/photo_tour_manager_screen.dart';
 import 'editor/your_space/edit_title_screen.dart';
 import 'editor/your_space/property_type_editor_screen.dart';
@@ -25,11 +29,11 @@ import 'arrival_preview_screen.dart';
 import '../profile/account_settings/personal_info/profile_edit_screen.dart';
 
 class ListingEditorScreen extends StatefulWidget {
-  final String listingTitle;
+  final Listing listing;
 
   const ListingEditorScreen({
     super.key,
-    this.listingTitle = 'apartment in islamabad',
+    required this.listing,
   });
 
   @override
@@ -38,11 +42,44 @@ class ListingEditorScreen extends StatefulWidget {
 
 class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late Listing _listing;
+  bool _isLoading = false;
+  UserModel? _user;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _listing = widget.listing;
+    _loadUserStatus();
+  }
+
+  Future<void> _loadUserStatus() async {
+    final user = await _authService.getProfile();
+    if (mounted) {
+      setState(() {
+        _user = user;
+      });
+    }
+  }
+
+  Future<void> _refreshListing() async {
+    // In a real app, we would fetch the single listing by ID
+    // For now, we'll fetch all listings and find this one
+    setState(() => _isLoading = true);
+    try {
+      final hostService = HostService();
+      final listings = await hostService.getListings();
+      final updated = listings.firstWhere((l) => l.id == _listing.id);
+      setState(() {
+        _listing = updated;
+      });
+    } catch (e) {
+      print('Error refreshing listing: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -141,6 +178,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           ),
         ],
       ),
+
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Container(
         height: 48,
@@ -161,7 +199,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           child: InkWell(
           onTap: () {
             if (_tabController.index == 0) {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const ListingPreviewScreen()));
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ListingPreviewScreen(listing: _listing)));
             } else {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const ArrivalPreviewScreen()));
             }
@@ -189,41 +227,50 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
   }
 
   Widget _buildYourSpaceTab() {
+    final listing = _listing;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Complete required steps card
+          if (!(_user?.isIdentityVerified ?? false) || !(_user?.isPhoneVerified ?? false) || _listing.status != 'PUBLISHED')
           _buildActionCard(
             title: 'Complete required steps',
             subtitle: 'Finish these final tasks to publish your listing and start getting booked.',
             showIndicator: true,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FinishUpPublishScreen())),
+            onTap: () async {
+              final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => FinishUpPublishScreen(listing: _listing)));
+              if (result == true) {
+                _refreshListing();
+                _loadUserStatus();
+              }
+            },
           ),
           
+          if (!(_user?.isIdentityVerified ?? false) || !(_user?.isPhoneVerified ?? false) || _listing.status != 'PUBLISHED')
           const SizedBox(height: 24),
           
           // Photo tour card
           _buildCard(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PhotoTourManagerScreen())),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PhotoTourManagerScreen())),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Photo tour',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          '1 bedroom · 1 bed · 1 bath',
-                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                          '${listing.bedrooms} bedroom · ${listing.beds} bed · ${listing.baths} bath',
+                          style: const TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -233,9 +280,9 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
                         border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text(
-                        '5 photos',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      child: Text(
+                        '${listing.images.length} photos',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -250,35 +297,17 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E1E1E),
                         borderRadius: BorderRadius.circular(12),
+                        image: listing.imageUrl.isNotEmpty
+                            ? DecorationImage(
+                                image: NetworkImage(listing.imageUrl),
+                                fit: BoxFit.cover,
+                                opacity: 0.5,
+                              )
+                            : null,
                       ),
-                      child: Center(
-                        child: Icon(Icons.camera_alt_outlined, color: Colors.white.withOpacity(0.2), size: 48),
-                      ),
-                    ),
-                    // Side peek images (placeholders)
-                    Positioned(
-                      left: -20,
-                      child: Container(
-                        width: 40,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade800,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.black, width: 2),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: -20,
-                      child: Container(
-                        width: 40,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade800,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.black, width: 2),
-                        ),
-                      ),
+                      child: listing.imageUrl.isEmpty 
+                        ? Center(child: Icon(Icons.camera_alt_outlined, color: Colors.white.withOpacity(0.2), size: 48))
+                        : null,
                     ),
                   ],
                 ),
@@ -290,16 +319,19 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           
           // Title card
           _buildInfoCard(
-            'Title', widget.listingTitle,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => EditTitleScreen(initialTitle: widget.listingTitle))),
+            'Title', _listing.title,
+            onTap: () async {
+              final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => EditTitleScreen(listing: _listing)));
+              if (result == true) _refreshListing();
+            },
           ),
           
           const SizedBox(height: 12),
           
           // Property type card
           _buildInfoCard(
-            'Property type', 'Entire place · Apartment',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PropertyTypeEditorScreen())),
+            'Property type', listing.subtitle,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PropertyTypeEditorScreen())),
           ),
           
           const SizedBox(height: 12),
@@ -307,9 +339,12 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           // Pricing card
           _buildInfoCard(
             'Pricing',
-            '\$22 per night\n\$38 weekend price\n10% weekly discount',
+            '\$${_listing.price.toInt()} per night\n${_listing.weekendPrice != null ? '\$${_listing.weekendPrice!.toInt()} weekend price' : 'No weekend price set'}\n${_listing.weeklyDiscount}% weekly discount',
             isMultiline: true,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PricingEditorScreen())),
+            onTap: () async {
+              final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => PricingEditorScreen(listing: _listing)));
+              if (result == true) _refreshListing();
+            },
           ),
           
           const SizedBox(height: 12),
@@ -326,7 +361,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           
           // Number of guests card
           _buildInfoCard(
-            'Number of guests', '4 guests',
+            'Number of guests', '${listing.guests} guests',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GuestCounterEditorScreen())),
           ),
           
@@ -334,16 +369,22 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           
           // Description card
           _buildInfoCard(
-            'Description', "You'll have a great time at this comfortable place to stay.",
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const EditDescriptionScreen())),
+            'Description', _listing.description.isEmpty ? 'Add details' : _listing.description,
+            onTap: () async {
+              final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => EditDescriptionScreen(_listing)));
+              if (result == true) _refreshListing();
+            },
           ),
           
           const SizedBox(height: 12),
           
           // Amenities card
           _buildInfoCard(
-            'Amenities', 'Add details',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AmenitiesManagementScreen())),
+            'Amenities', _listing.amenities.isEmpty ? 'Add details' : _listing.amenities.join(', '),
+            onTap: () async {
+              final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AmenitiesManagementScreen(listing: _listing)));
+              if (result == true) _refreshListing();
+            },
           ),
           
           const SizedBox(height: 12),
@@ -372,8 +413,8 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
                   decoration: BoxDecoration(
                     color: const Color(0xFFEBEBEB),
                     borderRadius: BorderRadius.circular(12),
-                    image: const DecorationImage(
-                      image: NetworkImage('https://maps.googleapis.com/maps/api/staticmap?center=Islamabad&zoom=13&size=600x300&key=YOUR_API_KEY'),
+                    image: DecorationImage(
+                      image: NetworkImage('https://maps.googleapis.com/maps/api/staticmap?center=${listing.fullAddress}&zoom=13&size=600x300&key=YOUR_API_KEY'),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -391,9 +432,9 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Islamabad Expy, Islamabad, Pakistan',
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                Text(
+                  listing.fullAddress,
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
                 ),
               ],
             ),
@@ -422,21 +463,21 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
                           color: Color(0xFF222222),
                           shape: BoxShape.circle,
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Text(
-                            'A',
-                            style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                            listing.hostName.isNotEmpty ? listing.hostName[0] : 'H',
+                            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Ahmad',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      Text(
+                        listing.hostName,
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
-                      const Text(
-                        'Started hosting in 2026',
-                        style: TextStyle(fontSize: 14, color: Colors.black54),
+                      Text(
+                        listing.hostDuration,
+                        style: const TextStyle(fontSize: 14, color: Colors.black54),
                       ),
                     ],
                   ),
@@ -458,7 +499,9 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           // Booking settings card
           _buildInfoCard(
             'Booking settings',
-            "You'll approve your first 3 bookings, then you'll switch to Instant Book",
+            listing.bookingType == 'instant' 
+                ? "Instant Book: Guests can book without approval" 
+                : "Request to Book: You'll approve each reservation",
             isMultiline: true,
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const BookingSettingsEditorScreen())),
           ),
@@ -476,11 +519,11 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.group_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('4 guests maximum', style: TextStyle(fontSize: 14)),
+                    const Icon(Icons.group_outlined, size: 20),
+                    const SizedBox(width: 12),
+                    Text('${listing.guests} guests maximum', style: const TextStyle(fontSize: 14)),
                   ],
                 ),
               ],
@@ -511,7 +554,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           
           // Cancellation policy card
           _buildInfoCard(
-            'Cancellation policy', 'Flexible',
+            'Cancellation policy', listing.cancellationPolicy,
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CancellationPolicyEditorScreen())),
           ),
           
@@ -530,6 +573,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
   }
 
   Widget _buildArrivalGuideTab() {
+    final listing = _listing;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
@@ -540,23 +584,23 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
             title: 'Complete required steps',
             subtitle: 'Finish these final tasks to publish your listing and start getting booked.',
             showIndicator: true,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FinishUpPublishScreen())),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => FinishUpPublishScreen(listing: _listing))),
           ),
           
           const SizedBox(height: 24),
           
           // Check-in & Checkout split card
           _buildSplitInfoCard(
-            'Check-in', 'Add details',
-            'Checkout', 'Add details',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CheckInCheckoutEditorScreen())),
+            'Check-in', listing.checkInTime,
+            'Checkout', listing.checkOutTime,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => CheckInCheckoutEditorScreen())),
           ),
           
           const SizedBox(height: 12),
           
           // Directions
           _buildInfoCard(
-            'Directions', 'Add details',
+            'Directions', listing.checkInInstructions ?? 'Add details',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DirectionsEditorScreen())),
           ),
           
@@ -564,7 +608,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           
           // Check-in method
           _buildInfoCard(
-            'Check-in method', 'Add details',
+            'Check-in method', listing.checkInMethod ?? 'Add details',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CheckInMethodEditorScreen())),
           ),
           
@@ -572,16 +616,17 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           
           // Wifi details
           _buildInfoCard(
-            'Wifi details', 'Add details',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const WifiDetailsEditorScreen())),
+            'Wifi details', 
+            listing.wifiNetwork != null ? 'Network: ${listing.wifiNetwork}' : 'Add details',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => WifiDetailsEditorScreen())),
           ),
           
           const SizedBox(height: 12),
           
           // House manual
           _buildInfoCard(
-            'House manual', 'Add details',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HouseManualEditorScreen())),
+            'House manual', listing.houseManual ?? 'Add details',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => HouseManualEditorScreen())),
           ),
           
           const SizedBox(height: 12),
@@ -597,11 +642,11 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.group_outlined, size: 20),
-                    SizedBox(width: 12),
-                    Text('4 guests maximum', style: TextStyle(fontSize: 14)),
+                    const Icon(Icons.group_outlined, size: 20),
+                    const SizedBox(width: 12),
+                    Text('${listing.guests} guests maximum', style: const TextStyle(fontSize: 14)),
                   ],
                 ),
               ],
@@ -612,7 +657,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           
           // Checkout instructions
           _buildInfoCard(
-            'Checkout instructions', 'Add details',
+            'Checkout instructions', listing.checkoutInstructions ?? 'Add details',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CheckoutInstructionsEditorScreen())),
           ),
           
@@ -628,7 +673,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           
           // Interaction preferences
           _buildInfoCard(
-            'Interaction preferences', 'Add details',
+            'Interaction preferences', listing.interactionPreference ?? 'Add details',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const InteractionPreferencesEditorScreen())),
           ),
           
@@ -637,6 +682,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
       ),
     );
   }
+
 
   Widget _buildSplitInfoCard(String title1, String value1, String title2, String value2, {VoidCallback? onTap}) {
     return _buildCard(

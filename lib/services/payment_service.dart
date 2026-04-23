@@ -35,13 +35,16 @@ class PaymentService {
         }),
       );
 
+      print('DEBUG: createPaymentIntent status: ${response.statusCode}');
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('DEBUG: createPaymentIntent response: $data');
         return {
           'clientSecret': data['clientSecret'],
           'paymentIntentId': data['id'],
         };
       }
+      print('DEBUG: createPaymentIntent failed: ${response.body}');
       return null;
     } catch (e) {
       print('DEBUG: Error in createPaymentIntent: $e');
@@ -66,6 +69,7 @@ class PaymentService {
     if (token == null) return null;
 
     try {
+      print('DEBUG: confirmBooking for intent: $paymentIntentId');
       final response = await http.post(
         Uri.parse('$_baseUrl/confirm-booking'),
         headers: {
@@ -87,12 +91,15 @@ class PaymentService {
         }),
       );
 
+      print('DEBUG: confirmBooking status: ${response.statusCode}');
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('DEBUG: confirmBooking response: $data');
         if (data['success'] == true) {
           return Booking.fromJson(data['booking']);
         }
       }
+      print('DEBUG: confirmBooking failed: ${response.body}');
       return null;
     } catch (e) {
       print('DEBUG: Error in confirmBooking: $e');

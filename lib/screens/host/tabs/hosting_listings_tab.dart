@@ -3,7 +3,12 @@ import '../required_actions_screen.dart';
 import '../menu/create_listing_screen.dart';
 import '../edit_listings_screen.dart';
 import '../listing_editor_screen.dart';
+import '../editor/your_space/property_type_editor_screen.dart';
+import '../identity_verification_screen.dart';
 import '../../profile/host/step1_screens.dart';
+import '../../../services/host_service.dart';
+import '../../../services/property_service.dart';
+import '../../../models/listing.dart';
 
 class HostingListingsTab extends StatefulWidget {
   const HostingListingsTab({super.key});
@@ -13,47 +18,40 @@ class HostingListingsTab extends StatefulWidget {
 }
 
 class _HostingListingsTabState extends State<HostingListingsTab> {
-  bool _isGrid = false; // Default to List view as per latest screenshot
+  bool _isGrid = false;
   bool _isSearching = false;
   bool _isEditing = false;
-  final Set<int> _selectedIndices = {};
+  final Set<String> _selectedIds = {};
   final TextEditingController _searchController = TextEditingController();
+  final HostService _hostService = HostService();
   
-  // Dynamic listings list
-  late List<Map<String, dynamic>> _listings;
+  List<Listing> _listings = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _listings = [
-      {
-        'id': 0,
-        'title': 'apartment in islamabad',
-        'location': 'Home in Islamabad, Islamabad Capital Territory',
-        'status': 'Action required',
-        'statusColor': const Color(0xFFFF385C),
-        'image': null,
-        'isPlaceholder': false,
-      },
-      {
-        'id': 1,
-        'title': 'Your House listing',
-        'location': 'Home',
-        'status': 'In progress',
-        'statusColor': Colors.orange,
-        'image': null,
-        'isPlaceholder': true,
-      },
-      {
-        'id': 2,
-        'title': 'Your House listing',
-        'location': 'Home',
-        'status': 'In progress',
-        'statusColor': Colors.orange,
-        'image': null,
-        'isPlaceholder': true,
-      },
-    ];
+    _fetchListings();
+  }
+
+  Future<void> _fetchListings() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final data = await _hostService.getListings();
+      setState(() {
+        _listings = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -64,6 +62,41 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: Colors.black)),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error: $_errorMessage'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _fetchListings,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final filteredListings = _listings.where((l) {
+      final query = _searchController.text.toLowerCase();
+      return l.title.toLowerCase().contains(query) || 
+             l.subtitle.toLowerCase().contains(query);
+    }).toList();
+
+    final draftListings = filteredListings.where((l) => l.status == 'DRAFT' || l.title.isEmpty || l.title == 'Untitiled Listing').toList();
+    final activeListings = filteredListings.where((l) => !draftListings.contains(l)).toList();
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -86,6 +119,7 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
                       child: TextField(
                         controller: _searchController,
                         autofocus: true,
+                        onChanged: (_) => setState(() {}),
                         decoration: const InputDecoration(
                           hintText: 'Search listings by name or location',
                           hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
@@ -120,38 +154,33 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Your listings',
+                    'Listings',
                     style: TextStyle(
+                      color: Colors.black,
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                      letterSpacing: -0.8,
                     ),
                   ),
                   Row(
                     children: [
-                      _buildHeaderIcon(
-                        Icons.search,
-                        onTap: () => setState(() => _isSearching = true),
-                      ),
+                      _buildHeaderIcon(Icons.search, onTap: () => setState(() => _isSearching = true)),
+                      const SizedBox(width: 12),
+                      _buildHeaderIcon(Icons.add, onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreateListingScreen(),
+                          ),
+                        );
+                      }),
                       const SizedBox(width: 12),
                       _buildHeaderIcon(
-                        _isGrid ? Icons.format_list_bulleted : Icons.grid_view_sharp,
-                        onTap: () => setState(() => _isGrid = !_isGrid),
-                      ),
-                      const SizedBox(width: 12),
-                      _buildHeaderIcon(
-                        Icons.add,
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateListingScreen())),
-                      ),
-                      const SizedBox(width: 12),
-                      _buildHeaderIcon(
-                        Icons.edit_note_outlined,
+                        _isEditing ? Icons.close : Icons.edit_outlined,
                         isActive: _isEditing,
                         onTap: () {
                           setState(() {
                             _isEditing = !_isEditing;
-                            if (!_isEditing) _selectedIndices.clear();
+                            if (!_isEditing) _selectedIds.clear();
                           });
                         },
                       ),
@@ -161,21 +190,142 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
               ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            if (_isGrid)
-              _buildGridView()
-            else
-              _buildListView(),
-            const SizedBox(height: 32),
-          ],
+      body: RefreshIndicator(
+        onRefresh: _fetchListings,
+        color: Colors.black,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              if (!_isSearching && !_isEditing) ...[
+                const SizedBox(height: 16),
+              ],
+              if (activeListings.isNotEmpty) ...[
+                _buildSectionHeader('${activeListings.length} active listings'),
+                const SizedBox(height: 16),
+                _buildListView(activeListings),
+                const SizedBox(height: 32),
+              ],
+              if (draftListings.isNotEmpty) ...[
+                _buildSectionHeader('${draftListings.length} draft listings'),
+                const SizedBox(height: 16),
+                _buildListView(draftListings),
+                const SizedBox(height: 32),
+              ],
+              if (filteredListings.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 80.0),
+                    child: Text('No listings found', style: TextStyle(color: Colors.grey)),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _isEditing ? _buildEditBar() : _buildActionBanner(),
+    );
+  }
+
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+    );
+  }
+
+  Widget _buildActionRequiredModule() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Action required',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildActionItem(
+          icon: Icons.verified_user_outlined,
+          title: 'Verify your identity',
+          subtitle: 'Required to start hosting and receiving payments.',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const IdentityVerificationScreen()),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F7F7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: Colors.black, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey),
+          ],
+        ),
+      ),
     );
   }
 
@@ -184,9 +334,14 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const RequiredActionsScreen()),
+          MaterialPageRoute(
+            builder: (context) => RequiredActionsScreen(
+              propertyTitle: _listings.isNotEmpty ? _listings.first.title : null,
+            ),
+          ),
         );
       },
+
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         decoration: BoxDecoration(
@@ -271,7 +426,7 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
               onTap: () {
                 setState(() {
                   _isEditing = false;
-                  _selectedIndices.clear();
+                  _selectedIds.clear();
                 });
               },
               child: const Text(
@@ -284,7 +439,7 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
               ),
             ),
             ElevatedButton(
-              onPressed: _selectedIndices.isEmpty 
+              onPressed: _selectedIds.isEmpty 
                 ? null 
                 : () {
                     showModalBottomSheet(
@@ -292,7 +447,7 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
                       builder: (context) => EditListingsScreen(
-                        selectedCount: _selectedIndices.length,
+                        selectedCount: _selectedIds.length,
                       ),
                     );
                   },
@@ -306,7 +461,7 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
                 disabledBackgroundColor: Colors.grey.shade300,
               ),
               child: Text(
-                'Edit ${_selectedIndices.length} listing${_selectedIndices.length == 1 ? '' : 's'}',
+                'Edit ${_selectedIds.length} listing${_selectedIds.length == 1 ? '' : 's'}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -316,92 +471,47 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
     );
   }
 
-  Widget _buildGridView() {
+  Widget _buildGridView(List<Listing> listings) {
     return Column(
-      children: _listings.map((listing) {
+      children: listings.map((listing) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 32.0),
           child: _buildListingCard(
-            index: listing['id'],
-            title: listing['title'],
-            location: listing['location'],
-            status: listing['status'],
-            statusColor: listing['statusColor'],
-            image: listing['image'],
-            isPlaceholder: listing['isPlaceholder'],
+            listing: listing,
           ),
         );
       }).toList(),
     );
   }
 
-  Widget _buildListView() {
-    final actionRequired = _listings.where((l) => l['status'] == 'Action required').toList();
-    final inProgress = _listings.where((l) => l['status'] == 'In progress').toList();
-
+  Widget _buildListView(List<Listing> listings) {
+    // For now, we can still group by status or just show them in order
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (actionRequired.isNotEmpty) ...[
-          const Text(
-            'Action required',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-          ...actionRequired.map((l) => Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: _buildListRow(
-              index: l['id'],
-              title: l['title'],
-              location: l['location'],
-              statusColor: l['statusColor'],
-              image: l['image'],
-              isPlaceholder: l['isPlaceholder'],
-            ),
-          )),
-          const SizedBox(height: 16),
-        ],
-        
-        if (inProgress.isNotEmpty) ...[
-          const Text(
-            'In progress',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-          ...inProgress.map((l) => Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
-            child: _buildListRow(
-              index: l['id'],
-              title: l['title'],
-              location: l['location'],
-              statusColor: l['statusColor'],
-              image: l['image'],
-              isPlaceholder: l['isPlaceholder'],
-            ),
-          )),
-        ],
-      ],
+      children: listings.map((l) => Padding(
+        padding: const EdgeInsets.only(bottom: 16.0),
+        child: _buildListRow(
+          listing: l,
+        ),
+      )).toList(),
     );
   }
 
   Widget _buildListRow({
-    required int index,
-    required String title,
-    required String location,
-    required Color statusColor,
-    String? image,
-    bool isPlaceholder = false,
+    required Listing listing,
   }) {
-    bool isSelected = _selectedIndices.contains(index);
+    bool isSelected = _selectedIds.contains(listing.id);
+    bool isPlaceholder = listing.imageUrl.contains('placeholder') || listing.imageUrl.isEmpty;
+    
     return GestureDetector(
       onTap: _isEditing 
-        ? () => setState(() => isSelected ? _selectedIndices.remove(index) : _selectedIndices.add(index))
+        ? () => setState(() => isSelected ? _selectedIds.remove(listing.id) : _selectedIds.add(listing.id))
         : isPlaceholder 
-            ? () => _showInProgressBottomSheet(context, index, title, location)
+            ? () => _showInProgressBottomSheet(context, listing)
             : () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ListingEditorScreen(listingTitle: title),
+                  builder: (context) => ListingEditorScreen(listing: listing),
                 ),
               ),
       child: Padding(
@@ -430,23 +540,24 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: isPlaceholder ? const Color(0xFFF2F2F2) : const Color(0xFF1E1E1E),
+                    color: isPlaceholder ? const Color(0xFFF2F2F2) : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(8),
-                    image: image != null
+                    image: listing.imageUrl.isNotEmpty
                         ? DecorationImage(
-                            image: NetworkImage(image),
+                            image: NetworkImage(listing.imageUrl),
                             fit: BoxFit.cover,
-                            opacity: 0.2,
                           )
                         : null,
                   ),
-                  child: Center(
-                    child: Icon(
-                      Icons.camera_alt_outlined, 
-                      color: isPlaceholder ? const Color(0xFFB0B0B0) : Colors.white24, 
-                      size: 32,
-                    ),
-                  ),
+                  child: listing.imageUrl.isEmpty
+                      ? const Center(
+                          child: Icon(
+                            Icons.camera_alt_outlined, 
+                            color: Color(0xFFB0B0B0), 
+                            size: 32,
+                          ),
+                        )
+                      : null,
                 ),
                 Positioned(
                   top: 4,
@@ -455,7 +566,7 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: statusColor,
+                      color: Colors.green, // Default to green for now
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
@@ -469,12 +580,12 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    listing.title,
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    location,
+                    listing.subtitle,
                     style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                 ],
@@ -486,40 +597,21 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
     );
   }
 
-  Widget _buildHeaderIcon(IconData icon, {VoidCallback? onTap, bool isActive = false}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.black : const Color(0xFFF7F7F7),
-          shape: BoxShape.circle,
-          border: Border.all(color: isActive ? Colors.black : Colors.grey.shade200),
-        ),
-        child: Icon(icon, size: 20, color: isActive ? Colors.white : Colors.black),
-      ),
-    );
-  }
-
   Widget _buildListingCard({
-    required int index,
-    required String title,
-    required String location,
-    required String status,
-    required Color statusColor,
-    String? image,
-    bool isPlaceholder = false,
+    required Listing listing,
   }) {
-    bool isSelected = _selectedIndices.contains(index);
+    bool isSelected = _selectedIds.contains(listing.id);
+    bool isPlaceholder = listing.imageUrl.contains('placeholder') || listing.imageUrl.isEmpty;
+    
     return GestureDetector(
       onTap: _isEditing 
-        ? () => setState(() => isSelected ? _selectedIndices.remove(index) : _selectedIndices.add(index))
+        ? () => setState(() => isSelected ? _selectedIds.remove(listing.id) : _selectedIds.add(listing.id))
         : isPlaceholder 
-            ? () => _showInProgressBottomSheet(context, index, title, location)
+            ? () => _showInProgressBottomSheet(context, listing)
             : () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ListingEditorScreen(listingTitle: title),
+                  builder: (context) => ListingEditorScreen(listing: listing),
                 ),
               ),
       child: Column(
@@ -531,19 +623,24 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
                 aspectRatio: 1,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isPlaceholder ? const Color(0xFFEBEBEB) : const Color(0xFF1E1E1E),
+                    color: isPlaceholder ? const Color(0xFFEBEBEB) : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(12),
-                    image: image != null
+                    image: listing.imageUrl.isNotEmpty
                         ? DecorationImage(
-                            image: NetworkImage(image),
+                            image: NetworkImage(listing.imageUrl),
                             fit: BoxFit.cover,
-                            opacity: 0.1, // Style for placeholder icons
                           )
                         : null,
                   ),
-                  child: isPlaceholder 
-                      ? const Center(child: Icon(Icons.camera_alt_outlined, color: Color(0xFFB0B0B0), size: 100))
-                      : const Center(child: Icon(Icons.camera_alt_outlined, color: Colors.white24, size: 100)),
+                  child: listing.imageUrl.isEmpty
+                      ? const Center(
+                          child: Icon(
+                            Icons.camera_alt_outlined, 
+                            color: Color(0xFFB0B0B0), 
+                            size: 100,
+                          ),
+                        )
+                      : null,
                 ),
               ),
               // Floating Status Tag
@@ -569,15 +666,15 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: BoxDecoration(
-                            color: statusColor,
+                          decoration: const BoxDecoration(
+                            color: Colors.green,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          status,
-                          style: const TextStyle(
+                        const Text(
+                          'Published', // Dynamic status could be added here
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
@@ -610,7 +707,7 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
           ),
           const SizedBox(height: 12),
           Text(
-            title,
+            listing.title,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -618,7 +715,7 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
           ),
           const SizedBox(height: 4),
           Text(
-            location,
+            listing.subtitle,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey.shade600,
@@ -629,7 +726,8 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
     );
   }
 
-  void _showInProgressBottomSheet(BuildContext context, int id, String title, String location) {
+
+  void _showInProgressBottomSheet(BuildContext context, Listing listing) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -667,13 +765,13 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
             ),
             const SizedBox(height: 24),
             Text(
-              title,
+              listing.title,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
-              location,
+              listing.subtitle,
               style: const TextStyle(fontSize: 14, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
@@ -688,7 +786,7 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const PropertyTypeSelectionScreen(),
+                      builder: (context) => const PropertyTypeEditorScreen(),
                     ),
                   );
                 },
@@ -706,8 +804,27 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
-                _removeListing(id);
-                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Remove listing?'),
+                    content: const Text('This will permanently delete your listing from Airbnb. This action cannot be undone.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel', style: TextStyle(color: Colors.black)),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context); // Close dialog
+                          Navigator.pop(context); // Close bottom sheet
+                          _removeListing(listing.id);
+                        },
+                        child: const Text('Remove', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                );
               },
               child: const Text(
                 'Remove listing',
@@ -726,9 +843,43 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
     );
   }
 
-  void _removeListing(int id) {
-    setState(() {
-      _listings.removeWhere((listing) => listing['id'] == id);
-    });
+  void _removeListing(String id) async {
+    try {
+      await _hostService.deleteListing(id);
+      if (mounted) {
+        setState(() {
+          _listings.removeWhere((listing) => listing.id == id);
+        });
+        PropertyService.triggerRefresh(); // Refresh the main Explore screen
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Listing removed permanently')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error removing listing: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Widget _buildHeaderIcon(IconData icon, {VoidCallback? onTap, bool isActive = false}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.black : Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Icon(
+          icon,
+          color: isActive ? Colors.white : Colors.black,
+          size: 20,
+        ),
+      ),
+    );
   }
 }

@@ -29,4 +29,8 @@ class ApiConfig {
   static String get experiencesUrl => '$baseUrl/experiences';
   static String get servicesUrl => '$baseUrl/services';
   static String get authUrl => '$baseUrl/auth';
+  static String get hostListingsUrl => '$baseUrl/host/listings';
+  static String get hostDashboardUrl => '$baseUrl/host/listings/dashboard';
+  static String get hostCalendarUrl => '$baseUrl/host/listings/calendar';
 }
+

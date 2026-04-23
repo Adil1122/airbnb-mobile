@@ -2,10 +2,18 @@ import 'package:http/http.dart' as http;
 import '../models/listing.dart';
 import '../utils/api_config.dart';
 import 'dart:convert';
+import 'dart:async';
 
 // ignore_for_file: avoid_print
 
 class PropertyService {
+  static final _refreshController = StreamController<void>.broadcast();
+  static Stream<void> get refreshStream => _refreshController.stream;
+
+  static void triggerRefresh() {
+    _refreshController.add(null);
+  }
+
   static String get baseUrl => ApiConfig.propertiesUrl;
 
   Future<List<Listing>> fetchProperties({int? categoryId}) async {
@@ -21,12 +29,14 @@ class PropertyService {
     }
   }
 
-  Future<List<Listing>> searchProperties({String? location, int? adults, int? children, String? startDate, String? endDate}) async {
+  Future<List<Listing>> searchProperties({String? location, int? adults, int? children, int? infants, int? pets, String? startDate, String? endDate}) async {
     try {
       final queryParams = <String, String>{};
       if (location != null && location.isNotEmpty) queryParams['location'] = location;
       if (adults != null && adults > 0) queryParams['adults'] = adults.toString();
       if (children != null && children > 0) queryParams['children'] = children.toString();
+      if (infants != null && infants > 0) queryParams['infants'] = infants.toString();
+      if (pets != null && pets > 0) queryParams['pets'] = 'true';
       if (startDate != null && startDate.isNotEmpty) queryParams['startDate'] = startDate;
       if (endDate != null && endDate.isNotEmpty) queryParams['endDate'] = endDate;
       

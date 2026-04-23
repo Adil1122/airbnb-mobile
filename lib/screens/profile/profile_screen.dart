@@ -5,6 +5,8 @@ import 'connections_screen.dart';
 import 'become_host_screen.dart';
 import 'account_settings/account_settings_screen.dart';
 import '../host/hosting_main_screen.dart';
+import '../../services/auth_service.dart';
+import '../../auth/login_signup_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -97,11 +99,22 @@ class ProfileScreen extends StatelessWidget {
 
             // Become a Host Card
             GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HostingMainScreen()),
-                );
+              onTap: () async {
+                final authService = AuthService();
+                final token = await authService.getToken();
+                if (context.mounted) {
+                  if (token != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const HostingMainScreen()),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
+                    );
+                  }
+                }
               },
               child: _buildBecomeHostCard(),
             ),

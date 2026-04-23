@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:airbnb_mobile/models/listing.dart';
+import 'package:airbnb_mobile/services/host_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
+import 'package:airbnb_mobile/screens/host/listing_preview_screen.dart';
 
 // --- Screen 1: Intro ---
 
 class HostStep3IntroScreen extends StatelessWidget {
-  const HostStep3IntroScreen({super.key});
+  final Listing listing;
+  const HostStep3IntroScreen({super.key, required this.listing});
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +200,7 @@ class HostStep3IntroScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const BookingSettingsScreen()),
+                          MaterialPageRoute(builder: (context) => BookingSettingsScreen(listing: listing)),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -230,7 +234,8 @@ class HostStep3IntroScreen extends StatelessWidget {
 // --- Screen 2: Booking Settings ---
 
 class BookingSettingsScreen extends StatefulWidget {
-  const BookingSettingsScreen({super.key});
+  final Listing listing;
+  const BookingSettingsScreen({super.key, required this.listing});
 
   @override
   State<BookingSettingsScreen> createState() => _BookingSettingsScreenState();
@@ -427,7 +432,7 @@ class _BookingSettingsScreenState extends State<BookingSettingsScreen> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const WeekdayPricingScreen()),
+                          MaterialPageRoute(builder: (context) => WeekdayPricingScreen(listing: widget.listing)),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -532,14 +537,27 @@ class _BookingSettingsScreenState extends State<BookingSettingsScreen> {
 // --- Screen 3: Weekday Pricing ---
 
 class WeekdayPricingScreen extends StatefulWidget {
-  const WeekdayPricingScreen({super.key});
+  final Listing listing;
+  const WeekdayPricingScreen({super.key, required this.listing});
 
   @override
   State<WeekdayPricingScreen> createState() => _WeekdayPricingScreenState();
 }
 
 class _WeekdayPricingScreenState extends State<WeekdayPricingScreen> {
-  final int _basePrice = 22;
+  int _basePrice = 50;
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
+
+  void _decrementPrice() {
+    if (_basePrice > 10) {
+      setState(() => _basePrice--);
+    }
+  }
+
+  void _incrementPrice() {
+    setState(() => _basePrice++);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -630,6 +648,17 @@ class _WeekdayPricingScreenState extends State<WeekdayPricingScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.black12),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.remove, size: 24),
+                                onPressed: _decrementPrice,
+                              ),
+                            ),
+                            const SizedBox(width: 32),
                             Text(
                               '\$$_basePrice',
                               style: const TextStyle(
@@ -637,15 +666,15 @@ class _WeekdayPricingScreenState extends State<WeekdayPricingScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 32),
                             Container(
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(color: Colors.black12),
                               ),
                               child: IconButton(
-                                icon: const Icon(Icons.edit_outlined, size: 24),
-                                onPressed: () {},
+                                icon: const Icon(Icons.add, size: 24),
+                                onPressed: _incrementPrice,
                               ),
                             ),
                           ],
@@ -654,8 +683,8 @@ class _WeekdayPricingScreenState extends State<WeekdayPricingScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
-                              'Guest price before taxes \$25',
+                            Text(
+                              'Guest price before taxes \$${(_basePrice * 1.1).round()}',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.black87,
@@ -784,30 +813,49 @@ class _WeekdayPricingScreenState extends State<WeekdayPricingScreen> {
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const WeekendPricingScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF222222),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            final updatedListing = await _hostService.updatePricing(
+                              widget.listing.id, 
+                              {'price': _basePrice.toDouble()}
+                            );
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => WeekendPricingScreen(listing: updatedListing, baseWeekdayPrice: _basePrice.toDouble())),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF222222),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -822,20 +870,39 @@ class _WeekdayPricingScreenState extends State<WeekdayPricingScreen> {
 // --- Screen 4: Weekend Pricing ---
 
 class WeekendPricingScreen extends StatefulWidget {
-  const WeekendPricingScreen({super.key});
+  final Listing listing;
+  final double baseWeekdayPrice;
+  const WeekendPricingScreen({super.key, required this.listing, required this.baseWeekdayPrice});
 
   @override
   State<WeekendPricingScreen> createState() => _WeekendPricingScreenState();
 }
 
 class _WeekendPricingScreenState extends State<WeekendPricingScreen> {
-  final double _baseWeekdayPrice = 22.0;
-  double _premiumPercentage = 72.0;
+  late double _baseWeekdayPrice;
+  late double _weekendPrice;
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
+
+  @override
+  void initState() {
+    super.initState();
+    _baseWeekdayPrice = widget.baseWeekdayPrice;
+    _weekendPrice = _baseWeekdayPrice * 1.2; // Default to 20% increase
+  }
+
+  void _decrementPrice() {
+    if (_weekendPrice > _baseWeekdayPrice) {
+      setState(() => _weekendPrice--);
+    }
+  }
+
+  void _incrementPrice() {
+    setState(() => _weekendPrice++);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Weekend price calculation
-    final int weekendPrice = (_baseWeekdayPrice * (1 + _premiumPercentage / 100)).round();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -921,97 +988,56 @@ class _WeekendPricingScreenState extends State<WeekendPricingScreen> {
                   Center(
                     child: Column(
                       children: [
-                        Text(
-                          '\$$weekendPrice',
-                          style: const TextStyle(
-                            fontSize: 80,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Guest price before taxes \$26',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 64),
-                        
-                        // Premium Slider Area
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Weekend premium',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Tip: Try 3%',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                ],
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.black12),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.remove, size: 24),
+                                onPressed: _decrementPrice,
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.black87),
-                                borderRadius: BorderRadius.circular(16),
+                            const SizedBox(width: 32),
+                            Text(
+                              '\$${_weekendPrice.round()}',
+                              style: const TextStyle(
+                                fontSize: 80,
+                                fontWeight: FontWeight.bold,
                               ),
-                              child: Text(
-                                '${_premiumPercentage.round()}%',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            ),
+                            const SizedBox(width: 32),
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.black12),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.add, size: 24),
+                                onPressed: _incrementPrice,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 32),
-                        SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            activeTrackColor: Colors.black,
-                            inactiveTrackColor: Colors.grey.shade200,
-                            thumbColor: const Color(0xFF222222),
-                            overlayColor: Colors.black12,
-                            trackHeight: 4,
-                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 18),
-                          ),
-                          child: Slider(
-                            value: _premiumPercentage,
-                            max: 99,
-                            min: 0,
-                            onChanged: (val) {
-                              setState(() {
-                                _premiumPercentage = val;
-                              });
-                            },
-                          ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Guest price before taxes \$${(_weekendPrice * 1.1).round()}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.grey.shade600),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('0%', style: TextStyle(color: Colors.black54, fontSize: 13, fontWeight: FontWeight.bold)),
-                              Text('99%', style: TextStyle(color: Colors.black54, fontSize: 13, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
+                        const SizedBox(height: 48),
                       ],
                     ),
                   ),
@@ -1100,30 +1126,50 @@ class _WeekendPricingScreenState extends State<WeekendPricingScreen> {
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const DiscountsScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF222222),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            // Update the listing price (using the direct weekend price)
+                            final updatedListing = await _hostService.updatePricing(
+                              widget.listing.id, 
+                              {'weekendPrice': _weekendPrice.toDouble()}
+                            );
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => DiscountsScreen(listing: updatedListing)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF222222),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -1138,13 +1184,17 @@ class _WeekendPricingScreenState extends State<WeekendPricingScreen> {
 // --- Screen 5: Discounts ---
 
 class DiscountsScreen extends StatefulWidget {
-  const DiscountsScreen({super.key});
+  final Listing listing;
+  const DiscountsScreen({super.key, required this.listing});
 
   @override
   State<DiscountsScreen> createState() => _DiscountsScreenState();
 }
 
 class _DiscountsScreenState extends State<DiscountsScreen> {
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
+  
   final List<Map<String, dynamic>> _discounts = [
     {
       'id': 'new',
@@ -1152,13 +1202,7 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
       'title': 'New listing promotion',
       'description': 'Offer 20% off your first 3 bookings',
       'isSelected': true,
-    },
-    {
-      'id': 'last',
-      'percentage': 4,
-      'title': 'Last-minute discount',
-      'description': 'For stays booked 14 days or less before arrival',
-      'isSelected': true,
+      'isAdjustable': false,
     },
     {
       'id': 'weekly',
@@ -1166,6 +1210,7 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
       'title': 'Weekly discount',
       'description': 'For stays of 7 nights or more',
       'isSelected': true,
+      'isAdjustable': true,
     },
     {
       'id': 'monthly',
@@ -1173,8 +1218,25 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
       'title': 'Monthly discount',
       'description': 'For stays of 28 nights or more',
       'isSelected': true,
+      'isAdjustable': true,
     },
   ];
+
+  void _incrementDiscount(int index) {
+    if (_discounts[index]['percentage'] < 99) {
+      setState(() {
+        _discounts[index]['percentage']++;
+      });
+    }
+  }
+
+  void _decrementDiscount(int index) {
+    if (_discounts[index]['percentage'] > 0) {
+      setState(() {
+        _discounts[index]['percentage']--;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1362,13 +1424,36 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const SafetyDetailsScreen()),
-                        );
-                      },
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            // Find the weekly discount percentage
+                            final weeklyDiscount = _discounts.firstWhere((d) => d['id'] == 'weekly')['percentage'] as int;
+                            
+                            final updatedListing = await _hostService.updatePricing(
+                              widget.listing.id, 
+                              {'weeklyDiscount': weeklyDiscount}
+                            );
+                            
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => SafetyDetailsScreen(listing: updatedListing)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF222222),
                         foregroundColor: Colors.white,
@@ -1397,6 +1482,9 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
   }
 
   Widget _buildDiscountCard(Map<String, dynamic> discount) {
+    final int index = _discounts.indexOf(discount);
+    final bool isAdjustable = discount['isAdjustable'] ?? false;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -1408,20 +1496,39 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.black87),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '${discount['percentage']}%',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+          // Percentage Display with +/- if adjustable
+          Column(
+            children: [
+              if (isAdjustable)
+                IconButton(
+                  icon: const Icon(Icons.add, size: 20),
+                  onPressed: () => _incrementDiscount(index),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.black87),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${discount['percentage']}%',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
+              if (isAdjustable)
+                IconButton(
+                  icon: const Icon(Icons.remove, size: 20),
+                  onPressed: () => _decrementDiscount(index),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -1466,7 +1573,8 @@ class _DiscountsScreenState extends State<DiscountsScreen> {
 // --- Screen 6: Safety Details ---
 
 class SafetyDetailsScreen extends StatefulWidget {
-  const SafetyDetailsScreen({super.key});
+  final Listing listing;
+  const SafetyDetailsScreen({super.key, required this.listing});
 
   @override
   State<SafetyDetailsScreen> createState() => _SafetyDetailsScreenState();
@@ -1717,7 +1825,7 @@ class _SafetyDetailsScreenState extends State<SafetyDetailsScreen> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const LegalDetailsScreen()),
+                          MaterialPageRoute(builder: (context) => LegalDetailsScreen(listing: widget.listing)),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -1775,14 +1883,47 @@ class _SafetyDetailsScreenState extends State<SafetyDetailsScreen> {
 // --- Screen 7: Legal Details ---
 
 class LegalDetailsScreen extends StatefulWidget {
-  const LegalDetailsScreen({super.key});
+  final Listing listing;
+  const LegalDetailsScreen({super.key, required this.listing});
 
   @override
   State<LegalDetailsScreen> createState() => _LegalDetailsScreenState();
 }
 
 class _LegalDetailsScreenState extends State<LegalDetailsScreen> {
+  late TextEditingController _countryController;
+  late TextEditingController _streetController;
+  late TextEditingController _aptController;
+  late TextEditingController _cityController;
+  late TextEditingController _provinceController;
+  late TextEditingController _postalController;
+
   bool _isBusiness = true;
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Try to parse the existing fullAddress or use defaults
+    _countryController = TextEditingController(text: 'Pakistan');
+    _streetController = TextEditingController(text: widget.listing.fullAddress.isNotEmpty ? widget.listing.fullAddress : 'Islamabad - Murree Expressway');
+    _aptController = TextEditingController(text: '');
+    _cityController = TextEditingController(text: 'Islamabad');
+    _provinceController = TextEditingController(text: 'Punjab');
+    _postalController = TextEditingController(text: '');
+  }
+
+  @override
+  void dispose() {
+    _countryController.dispose();
+    _streetController.dispose();
+    _aptController.dispose();
+    _cityController.dispose();
+    _provinceController.dispose();
+    _postalController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1874,17 +2015,17 @@ class _LegalDetailsScreenState extends State<LegalDetailsScreen> {
                     ),
                     child: Column(
                       children: [
-                        _buildInputField('Country / region', 'Pakistan', isDropdown: true),
+                        _buildInputField('Country / region', _countryController, isDropdown: true),
                         const Divider(height: 1, color: Colors.black),
-                        _buildInputField('Street address', 'Islamabad - Murree Expressway', isDropdown: true),
+                        _buildInputField('Street address', _streetController),
                         const Divider(height: 1, color: Colors.black),
-                        _buildInputField('Apt, floor, bldg (if applicable)', 'ilamabad'),
+                        _buildInputField('Apt, floor, bldg (if applicable)', _aptController),
                         const Divider(height: 1, color: Colors.black),
-                        _buildInputField('City / town / village', 'Lower Topa'),
+                        _buildInputField('City / town / village', _cityController),
                         const Divider(height: 1, color: Colors.black),
-                        _buildInputField('Province / state / territory (if applicable)', 'Punjab'),
+                        _buildInputField('Province / state / territory (if applicable)', _provinceController),
                         const Divider(height: 1, color: Colors.black),
-                        _buildInputField('Postal code (if applicable)', ''),
+                        _buildInputField('Postal code (if applicable)', _postalController),
                       ],
                     ),
                   ),
@@ -2012,28 +2153,53 @@ class _LegalDetailsScreenState extends State<LegalDetailsScreen> {
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        // FINAL STEP: Redirect to home
-                        Navigator.popUntil(context, (route) => route.isFirst);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF222222),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            final fullAddress = '${_streetController.text}, ${_aptController.text}, ${_cityController.text}, ${_provinceController.text}, ${_countryController.text}';
+                            final updatedListing = await _hostService.updateBasics(
+                              widget.listing.id, 
+                              {'location': fullAddress}
+                            );
+                            
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ListingPreviewScreen(listing: updatedListing),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF222222),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Create listing',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        child: const Text(
+                          'Create listing',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -2044,7 +2210,7 @@ class _LegalDetailsScreenState extends State<LegalDetailsScreen> {
     );
   }
 
-  Widget _buildInputField(String label, String value, {bool isDropdown = false}) {
+  Widget _buildInputField(String label, TextEditingController controller, {bool isDropdown = false}) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -2058,9 +2224,17 @@ class _LegalDetailsScreenState extends State<LegalDetailsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                value.isEmpty ? ' ' : value,
-                style: const TextStyle(fontSize: 16, color: Colors.black),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.black),
+                  readOnly: isDropdown, // Simple dropdown for now
+                ),
               ),
               if (isDropdown)
                 const Icon(Icons.keyboard_arrow_down, size: 24, color: Colors.black),

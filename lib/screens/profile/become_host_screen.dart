@@ -3,8 +3,42 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'host/step1_screens.dart';
 import 'dart:io';
 
-class BecomeHostScreen extends StatelessWidget {
+import '../../services/host_service.dart';
+import '../../models/listing.dart';
+
+class BecomeHostScreen extends StatefulWidget {
   const BecomeHostScreen({super.key});
+
+  @override
+  State<BecomeHostScreen> createState() => _BecomeHostScreenState();
+}
+
+class _BecomeHostScreenState extends State<BecomeHostScreen> {
+  bool _isLoading = false;
+  final HostService _hostService = HostService();
+
+  Future<void> _handleGetStarted() async {
+    setState(() => _isLoading = true);
+    try {
+      final listing = await _hostService.initiateListing();
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => HostStep1IntroScreen(listing: listing)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error starting host flow: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,30 +119,27 @@ class BecomeHostScreen extends StatelessWidget {
           top: false,
           child: SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HostStep1IntroScreen()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE31C5F), // Airbnb Red/Pink
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFFE31C5F)))
+              : ElevatedButton(
+                  onPressed: _handleGetStarted,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE31C5F), // Airbnb Red/Pink
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Get started',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Get started',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
           ),
         ),
       ),

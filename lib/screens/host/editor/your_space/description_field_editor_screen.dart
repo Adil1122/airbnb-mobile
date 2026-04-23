@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../../models/listing.dart';
+import '../../../../services/host_service.dart';
 
 class DescriptionFieldEditorScreen extends StatefulWidget {
+  final Listing listing;
   final String title;
   final String description;
   final String initialValue;
@@ -8,6 +11,7 @@ class DescriptionFieldEditorScreen extends StatefulWidget {
 
   const DescriptionFieldEditorScreen({
     super.key,
+    required this.listing,
     required this.title,
     required this.description,
     this.initialValue = '',
@@ -21,6 +25,8 @@ class DescriptionFieldEditorScreen extends StatefulWidget {
 class _DescriptionFieldEditorScreenState extends State<DescriptionFieldEditorScreen> {
   late TextEditingController _controller;
   int _currentLength = 0;
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
 
   @override
   void initState() {
@@ -35,9 +41,45 @@ class _DescriptionFieldEditorScreenState extends State<DescriptionFieldEditorScr
     super.dispose();
   }
 
+  Future<void> _handleSave() async {
+    setState(() => _isSaving = true);
+    try {
+      // Map based on title
+      Map<String, dynamic> updateData = {};
+      if (widget.title == 'Listing description') {
+        updateData = {
+          'title': widget.listing.title, // Keep existing title
+          'description': _controller.text
+        };
+      } else {
+        // Handle other fields similarly if backend supports them
+        updateData = {
+          'title': widget.listing.title,
+          'description': widget.listing.description
+        };
+      }
+
+      await _hostService.updateContent(widget.listing.id, updateData);
+      
+      if (mounted) {
+        Navigator.pop(context, true); // Return true to indicate success
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    bool canSave = _controller.text.isNotEmpty && _controller.text != widget.initialValue;
+    bool canSave = _controller.text.isNotEmpty && _controller.text != widget.initialValue && !_isSaving;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -104,7 +146,7 @@ class _DescriptionFieldEditorScreenState extends State<DescriptionFieldEditorScr
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: canSave ? () => Navigator.pop(context) : null,
+                  onPressed: canSave ? _handleSave : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: canSave ? const Color(0xFF222222) : const Color(0xFFF7F7F7),
                     foregroundColor: canSave ? Colors.white : Colors.grey.shade400,
@@ -112,7 +154,9 @@ class _DescriptionFieldEditorScreenState extends State<DescriptionFieldEditorScr
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     elevation: 0,
                   ),
-                  child: const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: _isSaving 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Save', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),

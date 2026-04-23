@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'description_field_editor_screen.dart';
+import '../../../../models/listing.dart';
 
 class EditDescriptionScreen extends StatelessWidget {
-  const EditDescriptionScreen({super.key});
+  final Listing listing;
+
+  const EditDescriptionScreen(this.listing, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +34,7 @@ class EditDescriptionScreen extends StatelessWidget {
                 _buildNavItem(
                   context,
                   'Listing description',
-                  'You\'ll have a great time at this comfortable place to stay.',
+                  listing.description.isEmpty ? 'Add details' : listing.description,
                   description: 'Write a quick summary of your place. You can highlight what\'s special about your space, your neighborhood, and how you\'ll interact with guests.',
                 ),
                 _buildNavItem(
@@ -95,6 +98,7 @@ class EditDescriptionScreen extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) => DescriptionFieldEditorScreen(
+              listing: listing,
               title: title,
               description: description,
               initialValue: isPlaceholder ? '' : subtitle,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:airbnb_mobile/models/listing.dart';
+import 'package:airbnb_mobile/services/host_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'step2_screens.dart';
@@ -15,7 +17,8 @@ class PropertyType {
 // --- Screen 1: Intro ---
 
 class HostStep1IntroScreen extends StatelessWidget {
-  const HostStep1IntroScreen({super.key});
+  final Listing listing;
+  const HostStep1IntroScreen({super.key, required this.listing});
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +209,7 @@ class HostStep1IntroScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const PropertyTypeSelectionScreen()),
+                          MaterialPageRoute(builder: (context) => PropertyTypeSelectionScreen(listing: listing)),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -240,7 +243,8 @@ class HostStep1IntroScreen extends StatelessWidget {
 // --- Screen 2: Property Type ---
 
 class PropertyTypeSelectionScreen extends StatefulWidget {
-  const PropertyTypeSelectionScreen({super.key});
+  final Listing listing;
+  const PropertyTypeSelectionScreen({super.key, required this.listing});
 
   @override
   State<PropertyTypeSelectionScreen> createState() => _PropertyTypeSelectionScreenState();
@@ -281,6 +285,9 @@ class _PropertyTypeSelectionScreenState extends State<PropertyTypeSelectionScree
     const PropertyType(label: 'Windmill', icon: Icons.vibration_outlined),
     const PropertyType(label: 'Yurt', icon: Icons.circle_outlined),
   ];
+
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
 
   @override
   Widget build(BuildContext context) {
@@ -497,31 +504,50 @@ class _PropertyTypeSelectionScreenState extends State<PropertyTypeSelectionScree
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: _selectedType == null ? null : () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const GuestTypeSelectionScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _selectedType == null ? const Color(0xFFF0F0F0) : const Color(0xFF222222),
-                        foregroundColor: _selectedType == null ? Colors.black26 : Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: _selectedType == null ? null : () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            final updatedListing = await _hostService.updateBasics(
+                              widget.listing.id, 
+                              {'type': _selectedType}
+                            );
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => GuestTypeSelectionScreen(listing: updatedListing)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _selectedType == null ? const Color(0xFFF0F0F0) : const Color(0xFF222222),
+                          foregroundColor: _selectedType == null ? Colors.black26 : Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                          disabledBackgroundColor: const Color(0xFFF7F7F7),
                         ),
-                        elevation: 0,
-                        disabledBackgroundColor: const Color(0xFFF7F7F7),
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -536,7 +562,8 @@ class _PropertyTypeSelectionScreenState extends State<PropertyTypeSelectionScree
 // --- Screen 3: Guest Type ---
 
 class GuestTypeSelectionScreen extends StatefulWidget {
-  const GuestTypeSelectionScreen({super.key});
+  final Listing listing;
+  const GuestTypeSelectionScreen({super.key, required this.listing});
 
   @override
   State<GuestTypeSelectionScreen> createState() => _GuestTypeSelectionScreenState();
@@ -565,6 +592,9 @@ class _GuestTypeSelectionScreenState extends State<GuestTypeSelectionScreen> {
       'icon': Icons.groups_outlined,
     },
   ];
+
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
 
   @override
   Widget build(BuildContext context) {
@@ -778,31 +808,54 @@ class _GuestTypeSelectionScreenState extends State<GuestTypeSelectionScreen> {
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: _selectedType == null ? null : () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LocationSelectionScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _selectedType == null ? const Color(0xFFF0F0F0) : const Color(0xFF222222),
-                        foregroundColor: _selectedType == null ? Colors.black26 : Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: _selectedType == null ? null : () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            // Update the listing type
+                            final updatedListing = await _hostService.updateBasics(
+                              widget.listing.id, 
+                              {
+                                'type': _selectedType,
+                                'location': widget.listing.fullAddress ?? 'Unknown',
+                              }
+                            );
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => LocationSelectionScreen(listing: updatedListing)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _selectedType == null ? const Color(0xFFF0F0F0) : const Color(0xFF222222),
+                          foregroundColor: _selectedType == null ? Colors.black26 : Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                          disabledBackgroundColor: const Color(0xFFF7F7F7),
                         ),
-                        elevation: 0,
-                        disabledBackgroundColor: const Color(0xFFF7F7F7),
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -816,8 +869,18 @@ class _GuestTypeSelectionScreenState extends State<GuestTypeSelectionScreen> {
 
 // --- Screen 4: Location ---
 
-class LocationSelectionScreen extends StatelessWidget {
-  const LocationSelectionScreen({super.key});
+class LocationSelectionScreen extends StatefulWidget {
+  final Listing listing;
+  const LocationSelectionScreen({super.key, required this.listing});
+
+  @override
+  State<LocationSelectionScreen> createState() => _LocationSelectionScreenState();
+}
+
+class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
+  final String _currentLocation = 'Islamabad Expy, Islamabad, Pakistan';
 
   @override
   Widget build(BuildContext context) {
@@ -1069,30 +1132,52 @@ class LocationSelectionScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const BasicDetailsScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF222222),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            final updatedListing = await _hostService.updateBasics(
+                              widget.listing.id, 
+                              {
+                                'type': widget.listing.subtitle ?? 'Entire place',
+                                'location': _currentLocation,
+                              }
+                            );
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => BasicDetailsScreen(listing: updatedListing)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF222222),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -1107,7 +1192,8 @@ class LocationSelectionScreen extends StatelessWidget {
 // --- Screen 5: Basic Details ---
 
 class BasicDetailsScreen extends StatefulWidget {
-  const BasicDetailsScreen({super.key});
+  final Listing listing;
+  const BasicDetailsScreen({super.key, required this.listing});
 
   @override
   State<BasicDetailsScreen> createState() => _BasicDetailsScreenState();
@@ -1118,6 +1204,8 @@ class _BasicDetailsScreenState extends State<BasicDetailsScreen> {
   int _bedrooms = 1;
   int _beds = 1;
   int _bathrooms = 1;
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
 
   @override
   Widget build(BuildContext context) {
@@ -1288,30 +1376,54 @@ class _BasicDetailsScreenState extends State<BasicDetailsScreen> {
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const HostStep2IntroScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF222222),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            final updatedListing = await _hostService.updateFloorPlan(
+                              widget.listing.id, 
+                              {
+                                'maxAdults': _guests,
+                                'bedrooms': _bedrooms,
+                                'beds': _beds,
+                                'bathrooms': _bathrooms,
+                              }
+                            );
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => HostStep2IntroScreen(listing: updatedListing)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF222222),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],

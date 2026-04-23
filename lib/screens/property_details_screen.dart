@@ -5,8 +5,13 @@ import 'reservation_screen.dart';
 
 class PropertyDetailsScreen extends StatefulWidget {
   final Listing listing;
+  final bool hideAppBar;
 
-  const PropertyDetailsScreen({super.key, required this.listing});
+  const PropertyDetailsScreen({
+    super.key, 
+    required this.listing,
+    this.hideAppBar = false,
+  });
 
   @override
   State<PropertyDetailsScreen> createState() => _PropertyDetailsScreenState();
@@ -154,33 +159,34 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                         ),
                       ),
                       // Top Buttons
-                      Positioned(
-                        top: MediaQuery.of(context).padding.top + 10,
-                        left: 16,
-                        right: 16,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _circleIconButton(
-                              onPressed: () => Navigator.pop(context),
-                              icon: Icons.arrow_back_ios_new,
-                            ),
-                            Row(
-                              children: [
-                                _circleIconButton(
-                                  onPressed: () {},
-                                  icon: Icons.ios_share,
-                                ),
-                                const SizedBox(width: 12),
-                                _circleIconButton(
-                                  onPressed: () {},
-                                  icon: Icons.favorite_border,
-                                ),
-                              ],
-                            ),
-                          ],
+                      if (!widget.hideAppBar)
+                        Positioned(
+                          top: MediaQuery.of(context).padding.top + 10,
+                          left: 16,
+                          right: 16,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _circleIconButton(
+                                onPressed: () => Navigator.pop(context),
+                                icon: Icons.arrow_back_ios_new,
+                              ),
+                              Row(
+                                children: [
+                                  _circleIconButton(
+                                    onPressed: () {},
+                                    icon: Icons.ios_share,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _circleIconButton(
+                                    onPressed: () {},
+                                    icon: Icons.favorite_border,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
                       // Image Navigation Buttons
                       if (_currentImageIndex > 0)
                         Positioned(
@@ -642,9 +648,11 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                                     children: [
                                       Stack(
                                         children: [
-                                          const CircleAvatar(
+                                          CircleAvatar(
                                             radius: 54,
-                                            backgroundImage: NetworkImage('https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=400&q=80'),
+                                            backgroundImage: NetworkImage(_currentListing.hostImageUrl.isNotEmpty 
+                                              ? _currentListing.hostImageUrl 
+                                              : 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=400&q=80'),
                                           ),
                                           Positioned(
                                             bottom: 4,
@@ -971,73 +979,74 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
           ),
 
           // Bottom Bar
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: const Border(top: BorderSide(color: Color(0xFFDDDDDD), width: 1)),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, -5)),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '\$${_currentListing.price.toInt()}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                          decoration: TextDecoration.underline,
+          if (!widget.hideAppBar)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: const Border(top: BorderSide(color: Color(0xFFDDDDDD), width: 1)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, -5)),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '\$${_currentListing.price.toInt()}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                            decoration: TextDecoration.underline,
+                          ),
                         ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'For 2 nights · Apr 3 – 5',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ReservationScreen(listing: _currentListing),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE31C5F),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
+                        elevation: 0,
+                        shape: const StadiumBorder(),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'For 2 nights · Apr 3 – 5',
+                      child: const Text(
+                        'Reserve',
                         style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.black.withOpacity(0.6),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
                         ),
                       ),
-                    ],
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ReservationScreen(listing: _currentListing),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE31C5F),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
-                      elevation: 0,
-                      shape: const StadiumBorder(),
                     ),
-                    child: const Text(
-                      'Reserve',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

@@ -6,14 +6,15 @@ import '../services/service_service.dart';
 import '../services/destination_service.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  final int initialCategoryIndex;
+  const SearchScreen({super.key, this.initialCategoryIndex = 0});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  int _selectedCategoryIndex = 0;
+  late int _selectedCategoryIndex;
   int _activeStep = 0; // 0: Where, 1: When, 2: Who/What
   
   // Counters for Guests
@@ -30,11 +31,35 @@ class _SearchScreenState extends State<SearchScreen> {
   
   bool _isSearching = false;
   List<Destination> _destinations = [];
+  List<String> _serviceCategories = [];
+  String? _selectedServiceCategory;
+
+  // Date picker state
+  DateTime? _startDate;
+  DateTime? _endDate;
+  late DateTime _viewDate;
+
+  final List<String> _monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
 
   @override
   void initState() {
     super.initState();
+    _selectedCategoryIndex = widget.initialCategoryIndex;
     _loadDestinations();
+    _loadServiceCategories();
+    _viewDate = DateTime.now();
+  }
+
+  Future<void> _loadServiceCategories() async {
+    final categories = await _serviceService.fetchServiceCategories();
+    if (mounted) {
+      setState(() {
+        _serviceCategories = categories;
+      });
+    }
   }
 
   Future<void> _loadDestinations() async {
@@ -76,14 +101,14 @@ class _SearchScreenState extends State<SearchScreen> {
                     // Step 1: "Where?"
                     _activeStep == 0 
                       ? _buildExpandedWhere(isExperience, isService) 
-                      : _buildCollapsedCard('Where', 'Peshawar', onTap: () => setState(() => _activeStep = 0)),
+                      : _buildCollapsedCard('Where', _locationController.text.isEmpty ? 'Search destinations' : _locationController.text, onTap: () => setState(() => _activeStep = 0)),
                     
                     const SizedBox(height: 12),
                     
                     // Step 2: "When?"
                     _activeStep == 1 
                       ? _buildExpandedWhen(sharesAltWhen) 
-                      : _buildCollapsedCard('When', 'Add dates', onTap: () => setState(() => _activeStep = 1)),
+                      : _buildCollapsedCard('When', _formatDateRange(), onTap: () => setState(() => _activeStep = 1)),
                     
                     const SizedBox(height: 12),
                     
@@ -209,8 +234,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: TextField(
                     controller: _locationController,
                     decoration: const InputDecoration(
-                      hintText: 'Peshawar, Khyber Pakhtunkhwa',
-                      hintStyle: TextStyle(color: Colors.black, fontSize: 16),
+                      hintText: 'Search destinations',
+                      hintStyle: TextStyle(color: Colors.black54, fontSize: 16),
                       border: InputBorder.none,
                       isDense: true,
                     ),
@@ -339,11 +364,11 @@ class _SearchScreenState extends State<SearchScreen> {
               clipBehavior: Clip.none,
               child: Row(
                 children: [
-                  _buildQuickDateBtn('Today', 'Apr 9'),
+                  _buildQuickDateBtn('Today', DateTime.now()),
                   const SizedBox(width: 12),
-                  _buildQuickDateBtn('Tomorrow', 'Apr 10'),
+                  _buildQuickDateBtn('Tomorrow', DateTime.now().add(const Duration(days: 1))),
                   const SizedBox(width: 12),
-                  _buildQuickDateBtn('This weekend', 'Apr 10–12'),
+                  _buildQuickDateBtn('This weekend', _getThisWeekend()),
                 ],
               ),
             )
@@ -383,9 +408,38 @@ class _SearchScreenState extends State<SearchScreen> {
           ],
           
           const SizedBox(height: 32),
-          const Text(
-            'April 2026',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${_monthNames[_viewDate.month - 1]} ${_viewDate.year}',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => setState(() {
+                      _viewDate = DateTime(_viewDate.year, _viewDate.month - 1);
+                    }),
+                    icon: const Icon(Icons.chevron_left),
+                  ),
+                  IconButton(
+                    onPressed: () => setState(() {
+                      _viewDate = DateTime(_viewDate.year, _viewDate.month + 1);
+                    }),
+                    icon: const Icon(Icons.chevron_right),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Day initials
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+                .map((d) => Text(d, style: TextStyle(color: Colors.grey.shade500, fontSize: 12, fontWeight: FontWeight.bold)))
+                .toList(),
           ),
           const SizedBox(height: 16),
           // Calendar Grid
@@ -394,29 +448,54 @@ class _SearchScreenState extends State<SearchScreen> {
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
+              mainAxisSpacing: 4,
+              crossAxisSpacing: 4,
             ),
-            itemCount: 35, 
+            itemCount: 42, // 6 weeks
             itemBuilder: (context, index) {
-              int day = index - 2; 
-              if (day < 1 || day > 30) return const SizedBox();
-              bool isSelected = day == 15;
-              return Center(
+              final firstDayOfMonth = DateTime(_viewDate.year, _viewDate.month, 1);
+              final firstDayOfWeek = firstDayOfMonth.weekday % 7; // 0 for Sunday
+              final dayNum = index - firstDayOfWeek + 1;
+              final totalDays = DateTime(_viewDate.year, _viewDate.month + 1, 0).day;
+
+              if (dayNum < 1 || dayNum > totalDays) return const SizedBox();
+
+              final date = DateTime(_viewDate.year, _viewDate.month, dayNum);
+              final isPast = date.isBefore(DateTime.now().subtract(const Duration(days: 1)));
+              
+              bool isSelected = false;
+              bool isInRange = false;
+              bool isStart = false;
+              bool isEnd = false;
+
+              if (_startDate != null && _endDate != null) {
+                if (date.isAtSameMomentAs(_startDate!) || (date.isAfter(_startDate!) && date.isBefore(_endDate!)) || date.isAtSameMomentAs(_endDate!)) {
+                  isSelected = true;
+                  isInRange = true;
+                }
+                if (date.isAtSameMomentAs(_startDate!)) isStart = true;
+                if (date.isAtSameMomentAs(_endDate!)) isEnd = true;
+              } else if (_startDate != null && date.isAtSameMomentAs(_startDate!)) {
+                isSelected = true;
+                isStart = true;
+              }
+
+              return GestureDetector(
+                onTap: isPast ? null : () => _onDateTap(date),
                 child: Container(
-                  width: 40,
-                  height: 40,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: isSelected ? Colors.black : Colors.transparent,
                     shape: BoxShape.circle,
                   ),
-                  alignment: Alignment.center,
                   child: Text(
-                    '$day',
+                    '$dayNum',
                     style: TextStyle(
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w400,
-                      color: isSelected ? Colors.white : (day < 6 ? Colors.grey.shade400 : Colors.black),
-                      decoration: day < 6 ? TextDecoration.lineThrough : null,
+                      color: isSelected 
+                          ? Colors.white 
+                          : (isPast ? Colors.grey.shade300 : Colors.black),
+                      decoration: isPast ? TextDecoration.lineThrough : null,
                     ),
                   ),
                 ),
@@ -445,24 +524,77 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildQuickDateBtn(String title, String date) {
-    return Container(
-      width: 120,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300, width: 1.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-          const SizedBox(height: 4),
-          Text(date, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-        ],
+  Widget _buildQuickDateBtn(String title, dynamic dateInfo) {
+    String dateStr = '';
+    if (dateInfo is DateTime) {
+      dateStr = '${_monthNames[dateInfo.month - 1].substring(0, 3)} ${dateInfo.day}';
+    } else if (dateInfo is Map<String, DateTime>) {
+      final start = dateInfo['start']!;
+      final end = dateInfo['end']!;
+      dateStr = '${_monthNames[start.month - 1].substring(0, 3)} ${start.day}–${end.day}';
+    }
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (dateInfo is DateTime) {
+            _startDate = dateInfo;
+            _endDate = dateInfo.add(const Duration(days: 1));
+          } else if (dateInfo is Map<String, DateTime>) {
+            _startDate = dateInfo['start'];
+            _endDate = dateInfo['end'];
+          }
+        });
+      },
+      child: Container(
+        width: 120,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey.shade300, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 4),
+            Text(dateStr, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+          ],
+        ),
       ),
     );
+  }
+
+  Map<String, DateTime> _getThisWeekend() {
+    final now = DateTime.now();
+    final friday = now.add(Duration(days: (5 - now.weekday + 7) % 7));
+    final sunday = friday.add(const Duration(days: 2));
+    return {'start': friday, 'end': sunday};
+  }
+
+  void _onDateTap(DateTime date) {
+    setState(() {
+      if (_startDate == null || (_startDate != null && _endDate != null)) {
+        _startDate = date;
+        _endDate = null;
+      } else if (_startDate != null && date.isBefore(_startDate!)) {
+        _startDate = date;
+      } else if (_startDate != null && date.isAfter(_startDate!)) {
+        _endDate = date;
+      } else {
+        _startDate = null;
+        _endDate = null;
+      }
+    });
+  }
+
+  String _formatDateRange() {
+    if (_startDate == null) return 'Add dates';
+    final startStr = '${_monthNames[_startDate!.month - 1].substring(0, 3)} ${_startDate!.day}';
+    if (_endDate == null) return startStr;
+    final endStr = '${_monthNames[_endDate!.month - 1].substring(0, 3)} ${_endDate!.day}';
+    return '$startStr – $endStr';
   }
 
   Widget _buildSmallChip(String label, {bool isSelected = false}) {
@@ -539,21 +671,12 @@ class _SearchScreenState extends State<SearchScreen> {
             style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: -0.5),
           ),
           const SizedBox(height: 24),
+          if (_serviceCategories.isEmpty)
+             const Center(child: Padding(padding: EdgeInsets.all(20), child: Text('No service types available', style: TextStyle(color: Colors.grey)))),
           Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: [
-              _buildServiceChip(Icons.camera_alt_outlined, 'Photography'),
-              _buildServiceChip(Icons.restaurant_outlined, 'Chefs'),
-              _buildServiceChip(Icons.airline_seat_flat_outlined, 'Massage'),
-              _buildServiceChip(Icons.shopping_basket_outlined, 'Prepared meals'),
-              _buildServiceChip(Icons.timer_outlined, 'Training'),
-              _buildServiceChip(Icons.brush_outlined, 'Makeup'),
-              _buildServiceChip(Icons.content_cut_outlined, 'Hair'),
-              _buildServiceChip(Icons.spa_outlined, 'Spa treatments'),
-              _buildServiceChip(Icons.flatware_outlined, 'Catering'),
-              _buildServiceChip(Icons.fingerprint_outlined, 'Nails'),
-            ],
+            children: _serviceCategories.map((cat) => _buildServiceChip(_getServiceIcon(cat), cat)).toList(),
           ),
           const SizedBox(height: 16),
         ],
@@ -561,24 +684,52 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  IconData _getServiceIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'photography': return Icons.camera_alt_outlined;
+      case 'chef': return Icons.restaurant_outlined;
+      case 'massage': return Icons.airline_seat_flat_outlined;
+      case 'prepared meals': return Icons.shopping_basket_outlined;
+      case 'training': return Icons.timer_outlined;
+      case 'makeup': return Icons.brush_outlined;
+      case 'hair': return Icons.content_cut_outlined;
+      case 'spa treatments': return Icons.spa_outlined;
+      case 'catering': return Icons.flatware_outlined;
+      case 'nails': return Icons.fingerprint_outlined;
+      default: return Icons.home_repair_service_outlined;
+    }
+  }
+
   Widget _buildServiceChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300, width: 1.2),
-        borderRadius: BorderRadius.circular(32),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 20, color: Colors.black87),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
-          ),
-        ],
+    final isSelected = _selectedServiceCategory == label;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (_selectedServiceCategory == label) {
+            _selectedServiceCategory = null;
+          } else {
+            _selectedServiceCategory = label;
+          }
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.black : Colors.white,
+          border: Border.all(color: isSelected ? Colors.black : Colors.grey.shade300, width: 1.2),
+          borderRadius: BorderRadius.circular(32),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 20, color: isSelected ? Colors.white : Colors.black87),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: isSelected ? Colors.white : Colors.black87),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -693,6 +844,8 @@ class _SearchScreenState extends State<SearchScreen> {
               } else {
                 setState(() {
                   _adults = _children = _infants = _pets = 0;
+                  _startDate = null;
+                  _endDate = null;
                 });
               }
             },
@@ -756,29 +909,45 @@ class _SearchScreenState extends State<SearchScreen> {
       String location = _locationController.text.trim();
       
       // Cleanup placeholders
-      if (location == 'Search destinations' || location == 'Peshawar, Khyber Pakhtunkhwa') {
+      if (location == 'Search destinations') {
         location = '';
       }
 
       print('DEBUG: Performing search - category: $_selectedCategoryIndex, location: "$location", adults: $_adults, children: $_children, infants: $_infants, pets: $_pets');
+
+      final startDateStr = _startDate?.toIso8601String().split('T')[0];
+      final endDateStr = _endDate?.toIso8601String().split('T')[0];
 
       if (_selectedCategoryIndex == 0) {
         results = await _propertyService.searchProperties(
           location: location,
           adults: _adults > 0 ? _adults : null,
           children: _children > 0 ? _children : null,
+          infants: _infants > 0 ? _infants : null,
+          pets: _pets > 0 ? _pets : null,
+          startDate: startDateStr,
+          endDate: endDateStr,
         );
       } else if (_selectedCategoryIndex == 1) {
         results = await _experienceService.searchExperiences(
           location: location,
           adults: _adults > 0 ? _adults : null,
           children: _children > 0 ? _children : null,
+          infants: _infants > 0 ? _infants : null,
+          pets: _pets > 0 ? _pets : null,
+          startDate: startDateStr,
+          endDate: endDateStr,
         );
       } else {
         results = await _serviceService.searchServices(
           location: location,
           adults: _adults > 0 ? _adults : null,
           children: _children > 0 ? _children : null,
+          infants: _infants > 0 ? _infants : null,
+          pets: _pets > 0 ? _pets : null,
+          startDate: startDateStr,
+          endDate: endDateStr,
+          category: _selectedServiceCategory,
         );
       }
 
@@ -788,6 +957,8 @@ class _SearchScreenState extends State<SearchScreen> {
         Navigator.pop(context, {
           'results': results,
           'categoryIndex': _selectedCategoryIndex,
+          'startDate': startDateStr,
+          'endDate': endDateStr,
         });
       }
     } catch (e) {

@@ -56,7 +56,13 @@ class AuthService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        return {'success': true, 'message': 'Registration successful. Please verify your email.'};
+        final token = data['accessToken'];
+        final userData = UserModel.fromJson(data['user']);
+        
+        await _saveToken(token);
+        await _saveUser(userData);
+
+        return {'success': true, 'user': userData};
       } else {
         return {'success': false, 'message': data['message'] ?? 'Registration failed'};
       }
@@ -85,6 +91,31 @@ class AuthService {
     final userStr = prefs.getString('user');
     if (userStr != null) {
       return UserModel.fromJson(jsonDecode(userStr));
+    }
+    return null;
+  }
+
+  Future<UserModel?> getProfile() async {
+    try {
+      final token = await getToken();
+      if (token == null) return null;
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = UserModel.fromJson(data);
+        await _saveUser(user);
+        return user;
+      }
+    } catch (e) {
+      print('Error fetching profile: $e');
     }
     return null;
   }

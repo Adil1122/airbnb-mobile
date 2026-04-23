@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../../models/listing.dart';
+import '../../../../services/host_service.dart';
 
 class EditTitleScreen extends StatefulWidget {
-  final String initialTitle;
-  const EditTitleScreen({super.key, this.initialTitle = 'apartment in islamabad'});
+  final Listing listing;
+  const EditTitleScreen({super.key, required this.listing});
 
   @override
   State<EditTitleScreen> createState() => _EditTitleScreenState();
@@ -11,11 +13,13 @@ class EditTitleScreen extends StatefulWidget {
 class _EditTitleScreenState extends State<EditTitleScreen> {
   late TextEditingController _controller;
   final int _maxCharacters = 50;
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.initialTitle);
+    _controller = TextEditingController(text: widget.listing.title);
     _controller.addListener(() {
       setState(() {});
     });
@@ -27,10 +31,33 @@ class _EditTitleScreenState extends State<EditTitleScreen> {
     super.dispose();
   }
 
+  Future<void> _handleSave() async {
+    setState(() => _isSaving = true);
+    try {
+      await _hostService.updateContent(widget.listing.id, {
+        'title': _controller.text,
+        'description': widget.listing.description
+      });
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     int remaining = _maxCharacters - _controller.text.length;
-    bool hasChanged = _controller.text != widget.initialTitle && _controller.text.isNotEmpty;
+    bool hasChanged = _controller.text != widget.listing.title && _controller.text.isNotEmpty && !_isSaving;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -129,7 +156,7 @@ class _EditTitleScreenState extends State<EditTitleScreen> {
                 ),
               ),
               ElevatedButton(
-                onPressed: hasChanged ? () => Navigator.pop(context) : null,
+                onPressed: hasChanged ? _handleSave : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
@@ -141,13 +168,15 @@ class _EditTitleScreenState extends State<EditTitleScreen> {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Save',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: _isSaving 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text(
+                        'Save',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ],
           ),

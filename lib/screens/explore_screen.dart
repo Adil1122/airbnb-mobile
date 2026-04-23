@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/category_tabs.dart';
 import '../widgets/listing_carousel.dart';
@@ -19,6 +20,7 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   int _selectedTabIndex = 0;
   bool _isLoading = true;
+  bool _hasActiveSearch = false;
   String? _errorMessage;
 
   final _propertyService = PropertyService();
@@ -29,10 +31,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
   List<Listing> _allExperiences = [];
   List<Listing> _allServices = [];
 
+  late final StreamSubscription<void> _refreshSubscription;
+
   @override
   void initState() {
     super.initState();
     _loadAllData();
+    _refreshSubscription = PropertyService.refreshStream.listen((_) {
+      _loadAllData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _loadAllData() async {
@@ -40,6 +53,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _hasActiveSearch = false;
     });
 
     try {
@@ -155,8 +169,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
     if (_selectedTabIndex == 0) {
       return Column(
         children: [
-          ListingCarousel(title: 'Available now', listings: _allProperties),
-          if (_allProperties.length > 3) ...[
+          ListingCarousel(
+            title: _hasActiveSearch ? 'Search results' : 'Available now', 
+            listings: _allProperties
+          ),
+          if (!_hasActiveSearch && _allProperties.length > 3) ...[
             const SizedBox(height: 16),
             ListingCarousel(
                 title: 'Top rated gems',
@@ -168,13 +185,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
       return Column(
         children: [
           ListingCarousel(
-              title: 'Real World Experiences', listings: _allExperiences),
+              title: _hasActiveSearch ? 'Search results' : 'Real World Experiences', 
+              listings: _allExperiences
+          ),
         ],
       );
     } else {
       return Column(
         children: [
-          ListingCarousel(title: 'Verified Services', listings: _allServices),
+          ListingCarousel(
+              title: _hasActiveSearch ? 'Search results' : 'Verified Services', 
+              listings: _allServices
+          ),
         ],
       );
     }
@@ -196,9 +218,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     child: Column(
                       children: [
                         SearchBarWidget(
+                          initialCategoryIndex: _selectedTabIndex,
                           onSearchResults: (results, categoryIndex) {
                             setState(() {
                               _selectedTabIndex = categoryIndex;
+                              _hasActiveSearch = true;
                               if (categoryIndex == 1) {
                                 _allExperiences = results;
                               } else if (categoryIndex == 2) {

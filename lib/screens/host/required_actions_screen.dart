@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import '../../models/hosting_dashboard_model.dart';
 
 class RequiredActionsScreen extends StatelessWidget {
-  const RequiredActionsScreen({super.key});
+  final HostAction? action;
+  final String? propertyTitle;
+
+  const RequiredActionsScreen({
+    super.key,
+    this.action,
+    this.propertyTitle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +38,7 @@ class RequiredActionsScreen extends StatelessWidget {
           ),
         ),
       ),
+
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -53,9 +62,9 @@ class RequiredActionsScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     const SizedBox(height: 48),
-                    const Text(
-                      'Required to publish',
-                      style: TextStyle(
+                    Text(
+                      action?.description ?? 'Required to publish',
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
                       ),
@@ -66,12 +75,12 @@ class RequiredActionsScreen extends StatelessWidget {
                     _buildIllustration(),
                     
                     const SizedBox(height: 32),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       child: Text(
-                        'Confirm a few key details',
+                        action?.title ?? 'Confirm a few key details',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                           letterSpacing: -0.5,
@@ -125,10 +134,10 @@ class RequiredActionsScreen extends StatelessWidget {
                             child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 28),
                           ),
                           const SizedBox(width: 16),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'apartment in islamabad',
-                              style: TextStyle(
+                              propertyTitle ?? 'apartment in islamabad',
+                              style: const TextStyle(
                                 fontSize: 16,
                                 color: Colors.black87,
                               ),
@@ -137,6 +146,7 @@ class RequiredActionsScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+
                   ],
                 ),
               ),

@@ -6,6 +6,8 @@ import 'tabs/hosting_messages_tab.dart';
 import 'tabs/hosting_listings_tab.dart';
 import 'tabs/hosting_menu_tab.dart';
 
+import '../../services/auth_service.dart';
+
 class HostingMainScreen extends StatefulWidget {
   const HostingMainScreen({super.key});
 
@@ -18,6 +20,25 @@ class HostingMainScreen extends StatefulWidget {
 
 class _HostingMainScreenState extends State<HostingMainScreen> {
   int _currentIndex = 0;
+  bool _isAuthenticated = false;
+  bool _checkingAuth = true;
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    final token = await _authService.getToken();
+    if (mounted) {
+      setState(() {
+        _isAuthenticated = token != null;
+        _checkingAuth = false;
+      });
+    }
+  }
 
   void setIndex(int index) {
     setState(() {
@@ -35,6 +56,20 @@ class _HostingMainScreenState extends State<HostingMainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_checkingAuth) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: Colors.black)),
+      );
+    }
+
+    if (!_isAuthenticated) {
+      return const Scaffold(
+        body: Center(
+          child: Text('Please log in from the profile screen to access hosting.'),
+        ),
+      );
+    }
+
     return Scaffold(
       body: _tabs[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(

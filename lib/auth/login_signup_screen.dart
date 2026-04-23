@@ -57,17 +57,10 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     setState(() => _isLoading = false);
 
     if (result['success']) {
-      if (_isSignUp) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'])),
-        );
-        _toggleAuthMode();
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-        );
-      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

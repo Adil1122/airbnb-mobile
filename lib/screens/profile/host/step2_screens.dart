@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:airbnb_mobile/models/listing.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'step3_screens.dart';
+import 'package:airbnb_mobile/services/host_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 // --- Shared Models ---
 
@@ -22,7 +25,8 @@ class HighlightItem {
 // --- Screen 1: Intro ---
 
 class HostStep2IntroScreen extends StatelessWidget {
-  const HostStep2IntroScreen({super.key});
+  final Listing listing;
+  const HostStep2IntroScreen({super.key, required this.listing});
 
   @override
   Widget build(BuildContext context) {
@@ -213,7 +217,7 @@ class HostStep2IntroScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const AmenitiesSelectionScreen()),
+                          MaterialPageRoute(builder: (context) => AmenitiesSelectionScreen(listing: listing)),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -247,7 +251,8 @@ class HostStep2IntroScreen extends StatelessWidget {
 // --- Screen 2: Amenities ---
 
 class AmenitiesSelectionScreen extends StatefulWidget {
-  const AmenitiesSelectionScreen({super.key});
+  final Listing listing;
+  const AmenitiesSelectionScreen({super.key, required this.listing});
 
   @override
   State<AmenitiesSelectionScreen> createState() => _AmenitiesSelectionScreenState();
@@ -255,6 +260,8 @@ class AmenitiesSelectionScreen extends StatefulWidget {
 
 class _AmenitiesSelectionScreenState extends State<AmenitiesSelectionScreen> {
   final Set<String> _selectedAmenities = {};
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
 
   final List<AmenityItem> _favorites = [
     const AmenityItem(label: 'Wifi', icon: Icons.wifi),
@@ -474,30 +481,49 @@ class _AmenitiesSelectionScreenState extends State<AmenitiesSelectionScreen> {
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const PhotoUploadScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF222222),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            final updatedListing = await _hostService.updateAmenities(
+                              widget.listing.id, 
+                              _selectedAmenities.toList()
+                            );
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => PhotoUploadScreen(listing: updatedListing)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF222222),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -579,8 +605,28 @@ class _AmenitiesSelectionScreenState extends State<AmenitiesSelectionScreen> {
 
 // --- Screen 3: Photos ---
 
-class PhotoUploadScreen extends StatelessWidget {
-  const PhotoUploadScreen({super.key});
+class PhotoUploadScreen extends StatefulWidget {
+  final Listing listing;
+  const PhotoUploadScreen({super.key, required this.listing});
+
+  @override
+  State<PhotoUploadScreen> createState() => _PhotoUploadScreenState();
+}
+
+class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
+  final List<String> _photos = [];
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _photos.add(image.path);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -675,15 +721,11 @@ class PhotoUploadScreen extends StatelessWidget {
                       childAspectRatio: 1.0,
                     ),
                     children: [
-                      _buildPhotoCard(
+                      ..._photos.asMap().entries.map((entry) => _buildPhotoCard(
                         context,
-                        'C:/Users/Computer Arena/.gemini/antigravity/brain/7d4a128d-57c1-4474-a7df-7a99dd1c5a54/airbnb_host_step1_house_illustration_1775465541270.png',
-                        isCover: true,
-                      ),
-                      _buildPhotoCard(
-                        context,
-                        'C:/Users/Computer Arena/.gemini/antigravity/brain/7d4a128d-57c1-4474-a7df-7a99dd1c5a54/airbnb_host_step2_house_illustration_1775466445849.png',
-                      ),
+                        entry.value,
+                        isCover: entry.key == 0,
+                      )),
                       _buildPhotoPlaceholder(context),
                       _buildAddMoreButton(context),
                     ],
@@ -773,30 +815,54 @@ class PhotoUploadScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const ListingTitleScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF222222),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            for (var path in _photos) {
+                              if (!kIsWeb) {
+                                await _hostService.uploadImage(widget.listing.id, path);
+                              }
+                            }
+                            
+                            // Fetch updated listing to get the new image URLs
+                            final updatedListing = await _hostService.getListingById(widget.listing.id);
+                            
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => ListingTitleScreen(listing: updatedListing)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error uploading: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF222222),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -813,9 +879,11 @@ class PhotoUploadScreen extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: kIsWeb
-              ? Container(
-                  color: Colors.grey.shade100,
-                  child: const Center(child: Icon(Icons.image, color: Colors.black26)),
+              ? Image.network(
+                  path,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
                 )
               : Image.file(
                   File(path),
@@ -871,38 +939,44 @@ class PhotoUploadScreen extends StatelessWidget {
   }
 
   Widget _buildPhotoPlaceholder(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
-      ),
-      child: const Center(
-        child: Icon(Icons.image_outlined, color: Colors.black12, size: 40),
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black12),
+        ),
+        child: const Center(
+          child: Icon(Icons.image_outlined, color: Colors.black12, size: 40),
+        ),
       ),
     );
   }
 
   Widget _buildAddMoreButton(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12, style: BorderStyle.solid),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.add, size: 32, color: Colors.black),
-          const SizedBox(height: 8),
-          const Text(
-            'Add more',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black12, style: BorderStyle.solid),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add, size: 32, color: Colors.black),
+            const SizedBox(height: 8),
+            const Text(
+              'Add more',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -911,7 +985,8 @@ class PhotoUploadScreen extends StatelessWidget {
 // --- Screen 4: Title ---
 
 class ListingTitleScreen extends StatefulWidget {
-  const ListingTitleScreen({super.key});
+  final Listing listing;
+  const ListingTitleScreen({super.key, required this.listing});
 
   @override
   State<ListingTitleScreen> createState() => _ListingTitleScreenState();
@@ -920,6 +995,8 @@ class ListingTitleScreen extends StatefulWidget {
 class _ListingTitleScreenState extends State<ListingTitleScreen> {
   final TextEditingController _controller = TextEditingController();
   final int _maxLength = 50;
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
 
   @override
   void dispose() {
@@ -990,9 +1067,9 @@ class _ListingTitleScreenState extends State<ListingTitleScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-                  const Text(
-                    'Now, let\'s give your apartment a title',
-                    style: TextStyle(
+                  Text(
+                    'Now, let\'s give your ${widget.listing.propertyType.toLowerCase()} a title',
+                    style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -1.0,
@@ -1127,31 +1204,50 @@ class _ListingTitleScreenState extends State<ListingTitleScreen> {
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: _controller.text.trim().isEmpty ? null : () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const ListingHighlightsScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _controller.text.trim().isEmpty ? const Color(0xFFF0F0F0) : const Color(0xFF222222),
-                        foregroundColor: _controller.text.trim().isEmpty ? Colors.black26 : Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: _controller.text.trim().isEmpty ? null : () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            final updatedListing = await _hostService.updateContent(
+                              widget.listing.id, 
+                              {'title': _controller.text}
+                            );
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => ListingHighlightsScreen(listing: updatedListing)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _controller.text.trim().isEmpty ? const Color(0xFFF0F0F0) : const Color(0xFF222222),
+                          foregroundColor: _controller.text.trim().isEmpty ? Colors.black26 : Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                          disabledBackgroundColor: const Color(0xFFF7F7F7),
                         ),
-                        elevation: 0,
-                        disabledBackgroundColor: const Color(0xFFF7F7F7),
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -1166,7 +1262,8 @@ class _ListingTitleScreenState extends State<ListingTitleScreen> {
 // --- Screen 5: Highlights ---
 
 class ListingHighlightsScreen extends StatefulWidget {
-  const ListingHighlightsScreen({super.key});
+  final Listing listing;
+  const ListingHighlightsScreen({super.key, required this.listing});
 
   @override
   State<ListingHighlightsScreen> createState() => _ListingHighlightsScreenState();
@@ -1268,9 +1365,9 @@ class _ListingHighlightsScreenState extends State<ListingHighlightsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-                  const Text(
-                    'Next, let\'s describe your apartment',
-                    style: TextStyle(
+                  Text(
+                    'Next, let\'s describe your ${widget.listing.propertyType.toLowerCase()}',
+                    style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -1.0,
@@ -1418,7 +1515,7 @@ class _ListingHighlightsScreenState extends State<ListingHighlightsScreen> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const ListingDescriptionScreen()),
+                          MaterialPageRoute(builder: (context) => ListingDescriptionScreen(listing: widget.listing)),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -1452,7 +1549,8 @@ class _ListingHighlightsScreenState extends State<ListingHighlightsScreen> {
 // --- Screen 6: Description ---
 
 class ListingDescriptionScreen extends StatefulWidget {
-  const ListingDescriptionScreen({super.key});
+  final Listing listing;
+  const ListingDescriptionScreen({super.key, required this.listing});
 
   @override
   State<ListingDescriptionScreen> createState() => _ListingDescriptionScreenState();
@@ -1463,6 +1561,8 @@ class _ListingDescriptionScreenState extends State<ListingDescriptionScreen> {
     text: 'You\'ll have a great time at this comfortable place to stay.',
   );
   final int _maxLength = 500;
+  bool _isSaving = false;
+  final HostService _hostService = HostService();
 
   @override
   void dispose() {
@@ -1655,31 +1755,50 @@ class _ListingDescriptionScreenState extends State<ListingDescriptionScreen> {
                         ),
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: _controller.text.trim().isEmpty ? null : () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const HostStep3IntroScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _controller.text.trim().isEmpty ? const Color(0xFFF0F0F0) : const Color(0xFF222222),
-                        foregroundColor: _controller.text.trim().isEmpty ? Colors.black26 : Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : ElevatedButton(
+                        onPressed: _controller.text.trim().isEmpty ? null : () async {
+                          setState(() => _isSaving = true);
+                          try {
+                            final updatedListing = await _hostService.updateContent(
+                              widget.listing.id, 
+                              {'description': _controller.text}
+                            );
+                            if (mounted) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => HostStep3IntroScreen(listing: updatedListing)),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _controller.text.trim().isEmpty ? const Color(0xFFF0F0F0) : const Color(0xFF222222),
+                          foregroundColor: _controller.text.trim().isEmpty ? Colors.black26 : Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
+                          disabledBackgroundColor: const Color(0xFFF7F7F7),
                         ),
-                        elevation: 0,
-                        disabledBackgroundColor: const Color(0xFFF7F7F7),
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ],
