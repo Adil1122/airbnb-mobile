@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/listing.dart';
 import '../services/property_service.dart';
 import 'reservation_screen.dart';
+import 'host/cancellation_policies_screen.dart';
 
 class PropertyDetailsScreen extends StatefulWidget {
   final Listing listing;
@@ -19,6 +20,7 @@ class PropertyDetailsScreen extends StatefulWidget {
 
 class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
   late Listing _currentListing;
+  late String _selectedCancellationPolicy;
   bool _isLoading = true;
   final _propertyService = PropertyService();
 
@@ -34,6 +36,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
   void initState() {
     super.initState();
     _currentListing = widget.listing;
+    _selectedCancellationPolicy = _currentListing.cancellationPolicy;
     _pageController = PageController();
     _reviewPageController = PageController(viewportFraction: 0.85);
     _mentionScrollController = ScrollController();
@@ -295,69 +298,102 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                               child: Column(
                                 children: [
                                   Text(
-                                    _currentListing.rating.toString(),
+                                    _currentListing.rating > 0 ? _currentListing.rating.toString() : 'New',
                                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 2),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: List.generate(5, (index) => const Icon(Icons.star, size: 12, color: Colors.black)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(width: 1, color: const Color(0xFFDDDDDD)), // Divider
-                            // Guest Favorite column
-                            Expanded(
-                              flex: 2,
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.eco, color: Color(0xFF91734F), size: 24),
-                                      const SizedBox(width: 4),
-                                      const Text(
-                                        'Guest\nfavorite',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          height: 1.1,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Transform.scale(
-                                        scaleX: -1,
-                                        child: const Icon(Icons.eco, color: Color(0xFF91734F), size: 24),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(width: 1, color: const Color(0xFFDDDDDD)), // Divider
-                            // Reviews column
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  Text(
-                                    '${_currentListing.reviewsCount}',
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  const Text(
-                                    'Reviews',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black,
+                                  if (_currentListing.rating > 0)
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: List.generate(5, (index) => Icon(
+                                        index < _currentListing.rating.floor() ? Icons.star : Icons.star_border,
+                                        size: 12, 
+                                        color: Colors.black
+                                      )),
+                                    )
+                                  else
+                                    const Text(
+                                      '★',
+                                      style: TextStyle(fontSize: 12, color: Colors.black),
                                     ),
-                                  ),
                                 ],
                               ),
                             ),
+                            Container(width: 1, color: const Color(0xFFDDDDDD)), // Divider
+                            // Guest Favorite column (Only if it's actually a favorite)
+                            if (_currentListing.isGuestFavorite && _currentListing.rating >= 4.5) ...[
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.eco, color: Color(0xFF91734F), size: 24),
+                                        const SizedBox(width: 4),
+                                        const Text(
+                                          'Guest\nfavorite',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            height: 1.1,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Transform.scale(
+                                          scaleX: -1,
+                                          child: const Icon(Icons.eco, color: Color(0xFF91734F), size: 24),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(width: 1, color: const Color(0xFFDDDDDD)), // Divider
+                            ],
+                            // Reviews column (Only if there are reviews)
+                            if (_currentListing.reviewsCount > 0)
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      '${_currentListing.reviewsCount}',
+                                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'Reviews',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              const Expanded(
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      'New',
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'No reviews',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -369,9 +405,11 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       // --- Section 2: Hosted By (Moved above highlights) ---
                       Row(
                         children: [
-                          const CircleAvatar(
+                          CircleAvatar(
                             radius: 20,
-                            backgroundImage: NetworkImage('https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200&q=80'),
+                            backgroundImage: NetworkImage(_currentListing.hostImageUrl.isNotEmpty 
+                              ? _currentListing.hostImageUrl 
+                              : 'https://cdn-icons-png.flaticon.com/512/149/149071.png'), // Generic avatar
                           ),
                           const SizedBox(width: 16),
                           Column(
@@ -394,24 +432,10 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       const Divider(thickness: 0.8),
                       const SizedBox(height: 24),
 
-                      // --- Section 3: Highlights (Trophy, Key, Location) ---
                       _buildHighlightItem(
-                        icon: Icons.emoji_events_outlined,
-                        title: 'Top 10% of homes',
-                        subtitle: 'This home is highly ranked based on ratings, reviews, and reliability.',
-                        iconColor: const Color(0xFF91734F),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildHighlightItem(
-                        icon: Icons.key_outlined,
-                        title: 'Exceptional check-in experience',
-                        subtitle: 'Recent guests gave the check-in process a 5-star rating.',
-                      ),
-                      const SizedBox(height: 24),
-                      _buildHighlightItem(
-                        icon: Icons.location_on_outlined,
-                        title: 'Unbeatable location',
-                        subtitle: '100% of guests in the past year gave this location a 5-star rating.',
+                        icon: Icons.nights_stay_outlined,
+                        title: 'Minimum stay',
+                        subtitle: 'This host requires a ${_currentListing.minNights}-night minimum stay for this listing.',
                       ),
                       
                       const SizedBox(height: 24),
@@ -425,50 +449,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       ),
                       const SizedBox(height: 32),
 
-                      // --- Section 5: Guest Favorite ---
-                      if (_currentListing.rating >= 4.0) ...[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.eco, color: Color(0xFF91734F), size: 40),
-                            const SizedBox(width: 12),
-                            Text(
-                              _currentListing.rating.toString(),
-                              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, height: 1),
-                            ),
-                            const SizedBox(width: 12),
-                            Transform.scale(
-                              scaleX: -1,
-                              child: const Icon(Icons.eco, color: Color(0xFF91734F), size: 40),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        const Center(
-                          child: Text(
-                            'Guest favorite',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 32),
-                            child: Text(
-                              'This home is in the top 10% of eligible listings based on ratings, reviews, and reliability',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 14, color: Color(0xFF717171)),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Center(
-                          child: Text(
-                            'How reviews work',
-                            style: TextStyle(fontSize: 14, decoration: TextDecoration.underline, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
+                      const SizedBox(height: 8),
                       
                       // --- Section 6: Guest reviews mention (NEW) ---
                       if (_currentListing.mentions.isNotEmpty) ...[
@@ -586,18 +567,26 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              Image.network(
-                                'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&q=80', // High-quality architectural/map-like placeholder
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: const Color(0xFFF7F7F7),
-                                    child: const Center(
-                                      child: Icon(Icons.map_outlined, size: 48, color: Color(0xFF717171)),
-                                    ),
-                                  );
-                                },
-                              ),
+                              if (_currentListing.fullAddress.isNotEmpty)
+                                Image.network(
+                                  'https://maps.googleapis.com/maps/api/staticmap?center=${Uri.encodeComponent(_currentListing.fullAddress)}&zoom=13&size=600x300&maptype=roadmap&markers=color:red%7C${Uri.encodeComponent(_currentListing.fullAddress)}&key=YOUR_API_KEY', // Placeholder logic, ideally use a real map or a better static map
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: const Color(0xFFF7F7F7),
+                                      child: const Center(
+                                        child: Icon(Icons.map_outlined, size: 48, color: Color(0xFF717171)),
+                                      ),
+                                    );
+                                  },
+                                )
+                              else
+                                Container(
+                                  color: const Color(0xFFF7F7F7),
+                                  child: const Center(
+                                    child: Icon(Icons.map_outlined, size: 48, color: Color(0xFF717171)),
+                                  ),
+                                ),
                               // Expand Button overlay
                               Positioned(
                                 top: 12,
@@ -652,7 +641,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                                             radius: 54,
                                             backgroundImage: NetworkImage(_currentListing.hostImageUrl.isNotEmpty 
                                               ? _currentListing.hostImageUrl 
-                                              : 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=400&q=80'),
+                                              : 'https://cdn-icons-png.flaticon.com/512/149/149071.png'),
                                           ),
                                           Positioned(
                                             bottom: 4,
@@ -862,29 +851,41 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       const SizedBox(height: 24),
                       
                       // Cancellation Policy
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.calendar_today_outlined, size: 24),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Cancellation policy",
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _currentListing.cancellationPolicy,
-                                  style: const TextStyle(fontSize: 14, color: Color(0xFF717171), height: 1.4),
-                                ),
-                              ],
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CancellationPoliciesScreen(listing: _currentListing),
                             ),
-                          ),
-                          const Icon(Icons.chevron_right, color: Color(0xFF717171)),
-                        ],
+                          ).then((_) {
+                            // Potentially refresh if needed
+                          });
+                        },
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.calendar_today_outlined, size: 24),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Cancellation policy",
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _selectedCancellationPolicy,
+                                    style: const TextStyle(fontSize: 14, color: Color(0xFF717171), height: 1.4),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right, color: Color(0xFF717171)),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 24),
 
@@ -904,7 +905,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  "Check-in: ${_currentListing.checkInTime}\nCheckout before ${_currentListing.checkOutTime}\n${_currentListing.guests} guests maximum",
+                                  "Check-in: ${_currentListing.checkInTime}\nCheckout before ${_currentListing.checkOutTime}\n${_currentListing.guests} guests maximum\nMinimum stay: ${_currentListing.minNights} ${_currentListing.minNights == 1 ? 'night' : 'nights'}",
                                   style: const TextStyle(fontSize: 14, color: Color(0xFF717171), height: 1.4),
                                 ),
                               ],
@@ -1473,6 +1474,192 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
           },
         );
       },
+    );
+  }
+
+  void _showCancellationPolicySheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Text(
+                          'Short-term stays',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  
+                  // Content
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.all(24),
+                      children: [
+                        _buildPolicyOption(
+                          title: 'Flexible',
+                          details: [
+                            'Full refund at least 1 day before check-in',
+                            'Partial refund within 1 day of check-in',
+                          ],
+                          setSheetState: setSheetState,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildPolicyOption(
+                          title: 'Moderate',
+                          details: [
+                            'Full refund at least 5 days before check-in',
+                            'Partial refund within 5 days of check-in',
+                          ],
+                          setSheetState: setSheetState,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildPolicyOption(
+                          title: 'Limited',
+                          details: [
+                            'Full refund at least 14 days before check-in',
+                            'Partial refund 7-14 days before check-in',
+                          ],
+                          setSheetState: setSheetState,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildPolicyOption(
+                          title: 'Firm',
+                          details: [
+                            'Full refund at least 30 days before check-in',
+                            'Partial refund 7-30 days before check-in',
+                          ],
+                          setSheetState: setSheetState,
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Footer
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                    decoration: BoxDecoration(
+                      border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedCancellationPolicy = _selectedCancellationPolicy; // Keep current sheet selection
+                            });
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF222222),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+        );
+      },
+    );
+  }
+
+  Widget _buildPolicyOption({
+    required String title,
+    required List<String> details,
+    required StateSetter setSheetState,
+  }) {
+    bool isSelected = _selectedCancellationPolicy == title;
+    
+    return GestureDetector(
+      onTap: () {
+        setSheetState(() {
+          _selectedCancellationPolicy = title;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected ? Colors.black : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Icon(Icons.info_outline, color: Colors.grey.shade600, size: 20),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...details.map((detail) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('• ', style: TextStyle(fontSize: 14, color: Color(0xFF717171))),
+                  Expanded(
+                    child: Text(
+                      detail,
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF717171), height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
     );
   }
 

@@ -10,6 +10,8 @@ class CalendarSettingsScreen extends StatefulWidget {
 class _CalendarSettingsScreenState extends State<CalendarSettingsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _smartPricing = false;
+  double _weekdayPrice = 22.0;
+  double _weekendPrice = 38.0;
 
   @override
   void initState() {
@@ -92,15 +94,17 @@ class _CalendarSettingsScreenState extends State<CalendarSettingsScreen> with Si
         const SizedBox(height: 16),
         _buildSettingCard(
           title: 'Per night',
-          value: '\$22',
+          value: '\$${_weekdayPrice.toInt()}',
           isLargeValue: true,
+          onTap: () => _showPriceEditor(context, isWeekend: false),
         ),
         const SizedBox(height: 12),
         _buildSettingCard(
           title: 'Custom weekend price',
-          value: '\$38',
+          value: '\$${_weekendPrice.toInt()}',
           isLargeValue: true,
           rightAction: 'Remove',
+          onTap: () => _showPriceEditor(context, isWeekend: true),
         ),
         const SizedBox(height: 12),
         _buildSettingCard(
@@ -214,8 +218,10 @@ class _CalendarSettingsScreenState extends State<CalendarSettingsScreen> with Si
     );
   }
 
-  Widget _buildSettingCard({String? title, String? subtitle, String? value, String? description, String? rightAction, bool isLargeValue = false, Widget? child}) {
-    return Container(
+  Widget _buildSettingCard({String? title, String? subtitle, String? value, String? description, String? rightAction, bool isLargeValue = false, Widget? child, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -259,6 +265,7 @@ class _CalendarSettingsScreenState extends State<CalendarSettingsScreen> with Si
           ],
         ],
       ),
+      ),
     );
   }
 
@@ -298,6 +305,89 @@ class _CalendarSettingsScreenState extends State<CalendarSettingsScreen> with Si
         Text(title, style: const TextStyle(fontSize: 16)),
         Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
       ],
+    );
+  }
+
+  void _showPriceEditor(BuildContext context, {required bool isWeekend}) {
+    final TextEditingController controller = TextEditingController(
+      text: (isWeekend ? _weekendPrice : _weekdayPrice).toInt().toString()
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: 400,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: EdgeInsets.fromLTRB(24, 32, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isWeekend ? 'Weekend price' : 'Base price',
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isWeekend 
+                  ? 'This price applies to Friday and Saturday nights.'
+                  : 'This is your base price for Sunday to Thursday.',
+                style: const TextStyle(color: Colors.black54),
+              ),
+              const Spacer(),
+              Center(
+                child: TextField(
+                  controller: controller,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 80, fontWeight: FontWeight.bold),
+                  decoration: const InputDecoration(
+                    prefixText: '\$',
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final double? newValue = double.tryParse(controller.text);
+                    if (newValue != null) {
+                      setState(() {
+                        if (isWeekend) {
+                          _weekendPrice = newValue;
+                        } else {
+                          // Linked logic: Apply same percentage change to weekend price
+                          if (_weekdayPrice > 0) {
+                            double multiplier = newValue / _weekdayPrice;
+                            _weekendPrice = _weekendPrice * multiplier;
+                          }
+                          _weekdayPrice = newValue;
+                        }
+                      });
+                      Navigator.pop(context);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

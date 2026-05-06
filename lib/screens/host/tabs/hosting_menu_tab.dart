@@ -8,12 +8,60 @@ import '../menu/create_listing_screen.dart';
 import '../menu/refer_host_screen.dart';
 import '../menu/legal_screen.dart';
 import '../menu/host_profile_screen.dart';
+import '../menu/payout_settings_screen.dart';
+import '../../../services/auth_service.dart';
+import '../../../models/user_model.dart';
+import '../../../auth/login_signup_screen.dart';
+import 'package:flutter/foundation.dart';
 
-class HostingMenuTab extends StatelessWidget {
+class HostingMenuTab extends StatefulWidget {
   const HostingMenuTab({super.key});
 
   @override
+  State<HostingMenuTab> createState() => _HostingMenuTabState();
+}
+
+class _HostingMenuTabState extends State<HostingMenuTab> {
+  UserModel? _user;
+  bool _isLoading = true;
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = await _authService.getProfile();
+      if (mounted) {
+        setState(() {
+          _user = user;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  String getBaseUrl() {
+    if (kIsWeb) return 'http://localhost:3001';
+    return 'http://192.168.1.12:3001';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: Colors.black)),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -78,6 +126,8 @@ class HostingMenuTab extends StatelessWidget {
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateListingScreen()))),
                 _buildMenuItem(context, Icons.people_outline, 'Refer a host',
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ReferHostScreen()))),
+                _buildMenuItem(context, Icons.payments_outlined, 'Payout settings',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PayoutSettingsScreen()))),
                 _buildMenuItem(context, Icons.auto_stories_outlined, 'Legal',
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LegalScreen()))),
                 
@@ -85,8 +135,16 @@ class HostingMenuTab extends StatelessWidget {
                   padding: EdgeInsets.symmetric(vertical: 8.0),
                   child: Divider(),
                 ),
-                _buildMenuItem(context, Icons.door_front_door_outlined, 'Log out', isLast: true, 
-                  onTap: () => Navigator.pop(context)),
+                _buildMenuItem(context, Icons.logout, 'Log out', isLast: true, 
+                  onTap: () async {
+                    await _authService.logout();
+                    if (mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
+                        (route) => false,
+                      );
+                    }
+                  }),
                 
                 const SizedBox(height: 120), // Banner space
               ],
@@ -94,74 +152,75 @@ class HostingMenuTab extends StatelessWidget {
           ),
           
           // Bottom Banner
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => RequiredActionsScreen()),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
+          if (!((_user?.isIdentityVerified ?? false) && (_user?.isPhoneVerified ?? false)))
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => RequiredActionsScreen()),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 15,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
+                    border: Border(top: BorderSide(color: Colors.grey.shade100)),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 15,
-                      offset: const Offset(0, -4),
-                    ),
-                  ],
-                  border: Border(top: BorderSide(color: Colors.grey.shade100)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E1E1E),
-                        borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E1E1E),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 24),
                       ),
-                      child: const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 24),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Confirm a few key details',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Confirm a few key details',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          Text(
-                            'Required to publish',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
+                            Text(
+                              'Required to publish',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                  ],
+                      Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -180,6 +239,8 @@ class HostingMenuTab extends StatelessWidget {
   }
 
   Widget _buildAvatarIcon() {
+    final avatarUrl = _user?.avatar != null ? '${getBaseUrl()}${_user!.avatar}' : null;
+
     return Container(
       width: 40,
       height: 40,
@@ -187,15 +248,22 @@ class HostingMenuTab extends StatelessWidget {
         color: Color(0xFF222222),
         shape: BoxShape.circle,
       ),
-      child: const Center(
-        child: Text(
-          'A',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
+      child: ClipOval(
+        child: avatarUrl != null 
+          ? Image.network(
+              avatarUrl, 
+              fit: BoxFit.cover, 
+              errorBuilder: (c, e, s) => Center(child: Text(_user?.name.substring(0, 1).toUpperCase() ?? '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))))
+          : Center(
+              child: Text(
+                _user?.name.isNotEmpty == true ? _user!.name.substring(0, 1).toUpperCase() : '?',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
       ),
     );
   }

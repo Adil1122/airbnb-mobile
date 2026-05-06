@@ -188,6 +188,25 @@ class HostService {
     }
   }
 
+  Future<Listing> updatePolicies(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('${ApiConfig.baseUrl}/host/listings/$id/policies'),
+        headers: await _getHeaders(),
+        body: json.encode(data),
+      );
+
+      if (response.statusCode == 200) {
+        return Listing.fromJson(json.decode(response.body));
+      } else {
+        throw Exception('Failed to update policies: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error updating policies: $e');
+      rethrow;
+    }
+  }
+
   Future<void> deleteListing(String id) async {
     try {
       final response = await http.delete(
@@ -310,7 +329,7 @@ class HostService {
   }
 
 
-  Future<void> uploadImage(String id, String filePath) async {
+  Future<void> uploadImage(String id, String filePath, {List<int>? bytes}) async {
     try {
       final request = http.MultipartRequest(
         'POST',
@@ -318,9 +337,18 @@ class HostService {
       );
       
       final headers = await _getHeaders();
+      headers.remove('Content-Type');
       request.headers.addAll(headers);
       
-      request.files.add(await http.MultipartFile.fromPath('image', filePath));
+      if (bytes != null) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'image',
+          bytes,
+          filename: 'upload_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ));
+      } else {
+        request.files.add(await http.MultipartFile.fromPath('image', filePath));
+      }
       
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);

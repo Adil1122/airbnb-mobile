@@ -18,6 +18,7 @@ import 'editor/your_space/booking_settings_editor_screen.dart';
 import 'editor/your_space/house_rules_editor_screen.dart';
 import 'editor/your_space/guest_safety_editor_screen.dart';
 import 'editor/your_space/cancellation_policy_editor_screen.dart';
+import 'cancellation_policies_screen.dart';
 import 'editor/your_space/custom_link_editor_screen.dart';
 import 'editor/arrival_guide/check_in_checkout_editor_screen.dart';
 import 'editor/arrival_guide/directions_editor_screen.dart';
@@ -111,11 +112,14 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined, color: Colors.black),
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              final result = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const EditPreferencesScreen()),
+                MaterialPageRoute(builder: (context) => EditPreferencesScreen(listing: _listing)),
               );
+              if (result == true) {
+                _refreshListing();
+              }
             },
           ),
         ],
@@ -234,7 +238,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Complete required steps card
-          if (!(_user?.isIdentityVerified ?? false) || !(_user?.isPhoneVerified ?? false) || _listing.status != 'PUBLISHED')
+          if (!(_user?.isIdentityVerified ?? false) || !(_user?.isPhoneVerified ?? false))
           _buildActionCard(
             title: 'Complete required steps',
             subtitle: 'Finish these final tasks to publish your listing and start getting booked.',
@@ -248,7 +252,7 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
             },
           ),
           
-          if (!(_user?.isIdentityVerified ?? false) || !(_user?.isPhoneVerified ?? false) || _listing.status != 'PUBLISHED')
+          if (!(_user?.isIdentityVerified ?? false) || !(_user?.isPhoneVerified ?? false))
           const SizedBox(height: 24),
           
           // Photo tour card
@@ -554,8 +558,14 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
           
           // Cancellation policy card
           _buildInfoCard(
-            'Cancellation policy', listing.cancellationPolicy,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CancellationPolicyEditorScreen())),
+            'Cancellation policy', _listing.cancellationPolicy,
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => CancellationPoliciesScreen(listing: _listing)),
+              );
+              _refreshListing();
+            },
           ),
           
           const SizedBox(height: 12),
@@ -580,13 +590,21 @@ class _ListingEditorScreenState extends State<ListingEditorScreen> with SingleTi
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Complete required steps card
+          if (!(_user?.isIdentityVerified ?? false) || !(_user?.isPhoneVerified ?? false))
           _buildActionCard(
             title: 'Complete required steps',
             subtitle: 'Finish these final tasks to publish your listing and start getting booked.',
             showIndicator: true,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => FinishUpPublishScreen(listing: _listing))),
+            onTap: () async {
+              final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => FinishUpPublishScreen(listing: _listing)));
+              if (result == true) {
+                _refreshListing();
+                _loadUserStatus();
+              }
+            },
           ),
           
+          if (!(_user?.isIdentityVerified ?? false) || !(_user?.isPhoneVerified ?? false))
           const SizedBox(height: 24),
           
           // Check-in & Checkout split card

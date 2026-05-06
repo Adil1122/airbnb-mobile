@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/listing.dart';
 import '../../services/host_service.dart';
+import '../../services/property_service.dart';
 import '../property_details_screen.dart';
 
 class ListingPreviewScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _ListingPreviewScreenState extends State<ListingPreviewScreen> {
     setState(() => _isPublishing = true);
     try {
       await _hostService.publishListing(widget.listing.id);
+      PropertyService.triggerRefresh();
       if (mounted) {
         Navigator.popUntil(context, (route) => route.isFirst);
         ScaffoldMessenger.of(context).showSnackBar(

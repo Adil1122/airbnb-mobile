@@ -15,10 +15,9 @@ class IdentityVerificationScreen extends StatefulWidget {
 class _IdentityVerificationScreenState extends State<IdentityVerificationScreen> {
   int _currentStep = 0;
   bool _isLoading = false;
+  bool _isSuccess = false;
+  String _errorMessage = '';
   
-  // Data
-  final TextEditingController _nameController = TextEditingController();
-  String _selectedIdType = 'Passport';
   XFile? _idFront;
   XFile? _idBack;
   XFile? _selfie;
@@ -29,6 +28,7 @@ class _IdentityVerificationScreenState extends State<IdentityVerificationScreen>
     final XFile? photo = await _picker.pickImage(
       source: ImageSource.camera,
       preferredCameraDevice: type == 'selfie' ? CameraDevice.front : CameraDevice.rear,
+      imageQuality: 85,
     );
 
     if (photo != null) {
@@ -37,6 +37,7 @@ class _IdentityVerificationScreenState extends State<IdentityVerificationScreen>
         if (type == 'back') _idBack = photo;
         if (type == 'selfie') _selfie = photo;
       });
+      _nextStep();
     }
   }
 
@@ -59,268 +60,401 @@ class _IdentityVerificationScreenState extends State<IdentityVerificationScreen>
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
+        leading: _currentStep < 4 ? IconButton(
           icon: Icon(_currentStep == 0 ? Icons.close : Icons.arrow_back, color: Colors.black),
           onPressed: () => _currentStep == 0 ? Navigator.pop(context) : _previousStep(),
-        ),
-        title: _currentStep > 0 ? Text('Step $_currentStep of 4', style: const TextStyle(color: Colors.black, fontSize: 16)) : null,
+        ) : null,
+        title: _currentStep > 0 && _currentStep < 4 ? Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (index) => Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: 32,
+            height: 4,
+            decoration: BoxDecoration(
+              color: index < _currentStep ? Colors.black : Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          )),
+        ) : null,
         centerTitle: true,
       ),
-      body: _buildCurrentStep(),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 400),
+        child: _buildCurrentStep(),
+      ),
     );
   }
 
   Widget _buildCurrentStep() {
     switch (_currentStep) {
-      case 0: return _buildIntro();
-      case 1: return _buildNameAndIdType();
-      case 2: return _buildIdFront();
-      case 3: return _buildIdBack();
-      case 4: return _buildSelfie();
-      case 5: return _buildProcessing();
+      case 0: return _buildIntro(key: const ValueKey(0));
+      case 1: return _buildCaptureStep(
+        key: const ValueKey(1),
+        title: 'Capture ID front',
+        subtitle: 'Position the front of your ID card in the frame. Make sure it\'s clear and readable.',
+        image: _idFront,
+        onCapture: () => _captureImage('front'),
+        icon: Icons.badge_outlined,
+      );
+      case 2: return _buildCaptureStep(
+        key: const ValueKey(2),
+        title: 'Capture ID back',
+        subtitle: 'Now, flip your card over and capture the back side.',
+        image: _idBack,
+        onCapture: () => _captureImage('back'),
+        icon: Icons.flip_to_back_outlined,
+      );
+      case 3: return _buildCaptureStep(
+        key: const ValueKey(3),
+        title: 'Capture selfie',
+        subtitle: 'We\'ll compare this with your ID photo. Please remove glasses or hats.',
+        image: _selfie,
+        onCapture: () => _captureImage('selfie'),
+        icon: Icons.face_outlined,
+        isSelfie: true,
+      );
+      case 4: return _buildProcessing(key: const ValueKey(4));
+      case 5: return _buildResult(key: const ValueKey(5));
       default: return _buildIntro();
     }
   }
 
-  Widget _buildIntro() {
+  Widget _buildIntro({Key? key}) {
     return Padding(
+      key: key,
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Identity verification', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          const Text('Before you can host, we need to verify your identity. This helps keep our community safe.', style: TextStyle(fontSize: 16, color: Colors.black87)),
-          const SizedBox(height: 48),
-          _buildStepRow(Icons.badge_outlined, 'Upload a photo of your ID', 'Passport or CNIC', onTap: _nextStep),
-          const SizedBox(height: 32),
-          _buildStepRow(Icons.face_outlined, 'Take a selfie', 'We\'ll compare it to your ID.', 
-            onTap: () => setState(() => _currentStep = 4)),
-          const Spacer(),
-          _buildButton('Get started', _nextStep),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepRow(IconData icon, String title, String subtitle, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Icon(icon, size: 32, color: Colors.black),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.black54)),
-              ],
-            ),
-          ),
-          if (onTap != null) const Icon(Icons.chevron_right, color: Colors.black26),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNameAndIdType() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Your information', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text('Identity\nverification', style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, height: 1.1)),
+          const SizedBox(height: 20),
+          const Text('Secure your host account by verifying your identity with a valid ID card and a quick selfie.', 
+            style: TextStyle(fontSize: 16, color: Colors.black54, height: 1.5)),
+          const SizedBox(height: 40),
+          _buildInfoRow(Icons.security, 'Your data is encrypted', 'We use bank-level security to protect your sensitive information.'),
           const SizedBox(height: 24),
-          TextField(
-            controller: _nameController,
-            decoration: InputDecoration(
-              labelText: 'Full Name',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          _buildInfoRow(Icons.bolt, 'Fast & Automatic', 'Our AI verifies your documents in seconds.'),
+          const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: _nextStep,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: const Text('Start verification', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           ),
-          const SizedBox(height: 32),
-          const Text('Select ID type', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          _buildIdOption('Passport'),
-          const SizedBox(height: 12),
-          _buildIdOption('CNIC (National ID)'),
-          const Spacer(),
-          _buildButton('Next', () {
-            if (_nameController.text.isNotEmpty) _nextStep();
-          }),
+          const Center(
+            child: Text('Trusted by millions of hosts', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildIdOption(String type) {
-    bool isSelected = _selectedIdType == type;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedIdType = type),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: isSelected ? Colors.black : Colors.grey.shade300, width: isSelected ? 2 : 1),
-          borderRadius: BorderRadius.circular(12),
+  Widget _buildInfoRow(IconData icon, String title, String subtitle) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 24, color: Colors.black87),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+            ],
+          ),
         ),
-        child: Row(
-          children: [
-            Text(type, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-            const Spacer(),
-            if (isSelected) const Icon(Icons.check_circle, color: Colors.black),
-          ],
-        ),
-      ),
+      ],
     );
   }
 
-  Widget _buildIdFront() {
-    return _buildCameraStep(
-      title: 'Front of ID card',
-      description: 'Position the front of your $_selectedIdType in the frame.',
-      image: _idFront,
-      onCapture: () => _captureImage('front'),
-    );
-  }
-
-  Widget _buildIdBack() {
-    return _buildCameraStep(
-      title: 'Back of ID card',
-      description: 'Now, take a photo of the back side.',
-      image: _idBack,
-      onCapture: () => _captureImage('back'),
-    );
-  }
-
-  Widget _buildSelfie() {
-    return _buildCameraStep(
-      title: 'Take a selfie',
-      description: 'Look straight at the camera and make sure your face is well-lit.',
-      image: _selfie,
-      onCapture: () => _captureImage('selfie'),
-      isSelfie: true,
-      buttonText: 'Take a selfie',
-    );
-  }
-
-  Widget _buildCameraStep({
-    required String title, 
-    required String description, 
-    XFile? image, 
-    required VoidCallback onCapture, 
+  Widget _buildCaptureStep({
+    required Key key,
+    required String title,
+    required String subtitle,
+    required XFile? image,
+    required VoidCallback onCapture,
+    required IconData icon,
     bool isSelfie = false,
-    String? buttonText,
   }) {
     return Padding(
+      key: key,
       padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text(description, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-          const SizedBox(height: 32),
+          Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Text(subtitle, style: const TextStyle(fontSize: 15, color: Colors.black54, height: 1.4)),
+          const SizedBox(height: 40),
           Expanded(
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.grey.shade300),
+                color: const Color(0xFFF7F7F7),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: Colors.grey.shade200),
               ),
-              child: image != null 
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(24), 
-                    child: kIsWeb 
-                      ? Image.network(image.path, fit: BoxFit.cover)
-                      : Image.file(File(image.path), fit: BoxFit.cover)
-                  )
-                : Center(child: Icon(isSelfie ? Icons.face : Icons.camera_alt, size: 64, color: Colors.grey)),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (image != null)
+                      kIsWeb 
+                        ? Image.network(image.path, width: double.infinity, height: double.infinity, fit: BoxFit.cover)
+                        : Image.file(File(image.path), width: double.infinity, height: double.infinity, fit: BoxFit.cover)
+                    else
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(icon, size: 80, color: Colors.black12),
+                          const SizedBox(height: 24),
+                          Text('Ready to capture', style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    
+                    // Guides
+                    if (image == null)
+                    CustomPaint(
+                      size: Size.infinite,
+                      painter: isSelfie ? SelfieGuidePainter() : IDGuidePainter(),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 32),
-          _buildButton(image == null ? (buttonText ?? 'Take photo') : 'Retake photo', onCapture, isOutline: image != null),
+          const SizedBox(height: 40),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: onCapture,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
+              ),
+              child: Text(image == null ? 'Capture now' : 'Retake photo', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+          ),
           if (image != null) ...[
             const SizedBox(height: 12),
-            _buildButton('Use this photo', _nextStep),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: OutlinedButton(
+                onPressed: _nextStep,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.black, width: 2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Looks good', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+              ),
+            ),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildProcessing() {
+  Widget _buildProcessing({Key? key}) {
     if (!_isLoading) {
       _startVerification();
     }
     return Center(
+      key: key,
       child: Padding(
-        padding: const EdgeInsets.all(48.0),
+        padding: const EdgeInsets.all(40.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(color: Colors.black),
-            const SizedBox(height: 32),
-            const Text('Processing verification...', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(
+              width: 120,
+              height: 120,
+              child: CircularProgressIndicator(
+                color: Colors.black,
+                strokeWidth: 8,
+                backgroundColor: Color(0xFFF0F0F0),
+              ),
+            ),
+            const SizedBox(height: 48),
+            const Text('Verifying Identity', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            const Text('Our AI is comparing your selfie with your ID card. This usually takes a few seconds.', 
-              textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+            const Text('Uploading documents and running AI liveness checks. Please don\'t close the app.', 
+              textAlign: TextAlign.center, 
+              style: TextStyle(fontSize: 15, color: Colors.black54, height: 1.5)),
+            const SizedBox(height: 32),
+            _buildProcessStep('Uploading files...', true),
+            _buildProcessStep('Scanning document data...', true),
+            _buildProcessStep('Performing facial match...', false),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildProcessStep(String text, bool isDone) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(isDone ? Icons.check_circle : Icons.radio_button_unchecked, 
+            color: isDone ? Colors.green : Colors.grey.shade300, size: 20),
+          const SizedBox(width: 12),
+          Text(text, style: TextStyle(
+            color: isDone ? Colors.black : Colors.grey,
+            fontWeight: isDone ? FontWeight.w500 : FontWeight.normal,
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResult({Key? key}) {
+    return Padding(
+      key: key,
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: _isSuccess ? Colors.green.shade50 : Colors.red.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              _isSuccess ? Icons.verified_user : Icons.error_outline, 
+              size: 56, 
+              color: _isSuccess ? Colors.green : Colors.red
+            ),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            _isSuccess ? 'Verification successful!' : 'Verification failed', 
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _isSuccess 
+              ? 'Your identity has been confirmed. You\'re now ready to publish your listings and welcome guests!' 
+              : _errorMessage.isNotEmpty ? _errorMessage : 'We couldn\'t verify your identity. Please ensure your ID is clear and your selfie matches.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16, color: Colors.black54, height: 1.5),
+          ),
+          const SizedBox(height: 64),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context, _isSuccess),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(_isSuccess ? 'Continue to dashboard' : 'Back', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+          ),
+          if (!_isSuccess) ...[
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => setState(() {
+                _currentStep = 0;
+                _isLoading = false;
+              }),
+              child: const Text('Try again', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+          ],
+        ],
       ),
     );
   }
 
   Future<void> _startVerification() async {
     setState(() => _isLoading = true);
+    
+    // Artificial delay for premium feel
     await Future.delayed(const Duration(seconds: 4));
     
     try {
       await HostService().verifyIdentity();
       PropertyService.triggerRefresh();
       if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Identity verified! Faces matched successfully.')),
-        );
+        setState(() {
+          _isSuccess = true;
+          _isLoading = false;
+          _currentStep = 5;
+        });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
+          _isSuccess = false;
+          _errorMessage = e.toString();
           _isLoading = false;
-          _currentStep = 0; // Reset
+          _currentStep = 5;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Verification failed: $e'), backgroundColor: Colors.red),
-        );
       }
     }
   }
+}
 
-  Widget _buildButton(String label, VoidCallback onPressed, {bool isOutline = false}) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: isOutline 
-        ? OutlinedButton(
-            onPressed: onPressed,
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.black),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
-          )
-        : ElevatedButton(
-            onPressed: onPressed,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ),
+class IDGuidePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    
+    final rect = RRect.fromLTRBR(
+      size.width * 0.1,
+      size.height * 0.3,
+      size.width * 0.9,
+      size.height * 0.7,
+      const Radius.circular(16),
+    );
+    
+    canvas.drawRRect(rect, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+class SelfieGuidePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width / 2, size.height / 2),
+        width: size.width * 0.7,
+        height: size.height * 0.6,
+      ),
+      paint,
     );
   }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

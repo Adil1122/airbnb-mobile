@@ -120,6 +120,104 @@ class AuthService {
     return null;
   }
 
+  Future<UserModel?> updateProfile(Map<String, dynamic> profileData) async {
+    try {
+      final token = await getToken();
+      if (token == null) return null;
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(profileData),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = UserModel.fromJson(data);
+        await _saveUser(user);
+        return user;
+      }
+    } catch (e) {
+      print('Error updating profile: $e');
+    }
+    return null;
+  }
+
+  Future<UserModel?> uploadAvatar({String? path, Uint8List? bytes}) async {
+    try {
+      final token = await getToken();
+      if (token == null) return null;
+
+      final uri = Uri.parse('$baseUrl/profile/avatar');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer $token';
+
+      if (kIsWeb && bytes != null) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: 'avatar.jpg',
+        ));
+      } else if (path != null) {
+        request.files.add(await http.MultipartFile.fromPath('file', path));
+      } else {
+        return null;
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = UserModel.fromJson(data);
+        await _saveUser(user);
+        return user;
+      }
+    } catch (e) {
+      print('Error uploading avatar: $e');
+    }
+    return null;
+  }
+
+  Future<UserModel?> uploadIDCard({String? path, Uint8List? bytes}) async {
+    try {
+      final token = await getToken();
+      if (token == null) return null;
+
+      final uri = Uri.parse('$baseUrl/profile/id-card');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer $token';
+
+      if (kIsWeb && bytes != null) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: 'id_card.jpg',
+        ));
+      } else if (path != null) {
+        request.files.add(await http.MultipartFile.fromPath('file', path));
+      } else {
+        return null;
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = UserModel.fromJson(data);
+        await _saveUser(user);
+        return user;
+      }
+    } catch (e) {
+      print('Error uploading ID card: $e');
+    }
+    return null;
+  }
+
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('accessToken');

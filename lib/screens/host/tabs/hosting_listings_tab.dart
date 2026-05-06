@@ -8,7 +8,9 @@ import '../identity_verification_screen.dart';
 import '../../profile/host/step1_screens.dart';
 import '../../../services/host_service.dart';
 import '../../../services/property_service.dart';
+import '../../../services/auth_service.dart';
 import '../../../models/listing.dart';
+import '../../../models/user_model.dart';
 
 class HostingListingsTab extends StatefulWidget {
   const HostingListingsTab({super.key});
@@ -24,8 +26,10 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
   final Set<String> _selectedIds = {};
   final TextEditingController _searchController = TextEditingController();
   final HostService _hostService = HostService();
+  final AuthService _authService = AuthService();
   
   List<Listing> _listings = [];
+  UserModel? _user;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -41,9 +45,11 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
       _errorMessage = null;
     });
     try {
-      final data = await _hostService.getListings();
+      final listingData = await _hostService.getListings();
+      final userData = await _authService.getProfile();
       setState(() {
-        _listings = data;
+        _listings = listingData;
+        _user = userData;
         _isLoading = false;
       });
     } catch (e) {
@@ -175,6 +181,11 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
                       }),
                       const SizedBox(width: 12),
                       _buildHeaderIcon(
+                        _isGrid ? Icons.format_list_bulleted : Icons.grid_view_outlined,
+                        onTap: () => setState(() => _isGrid = !_isGrid),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildHeaderIcon(
                         _isEditing ? Icons.close : Icons.edit_outlined,
                         isActive: _isEditing,
                         onTap: () {
@@ -206,13 +217,13 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
               if (activeListings.isNotEmpty) ...[
                 _buildSectionHeader('${activeListings.length} active listings'),
                 const SizedBox(height: 16),
-                _buildListView(activeListings),
+                _isGrid ? _buildGridView(activeListings) : _buildListView(activeListings),
                 const SizedBox(height: 32),
               ],
               if (draftListings.isNotEmpty) ...[
                 _buildSectionHeader('${draftListings.length} draft listings'),
                 const SizedBox(height: 16),
-                _buildListView(draftListings),
+                _isGrid ? _buildGridView(draftListings) : _buildListView(draftListings),
                 const SizedBox(height: 32),
               ],
               if (filteredListings.isEmpty)
@@ -226,7 +237,11 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
           ),
         ),
       ),
-      bottomNavigationBar: _isEditing ? _buildEditBar() : _buildActionBanner(),
+      bottomNavigationBar: _isEditing 
+        ? _buildEditBar() 
+        : ((_user?.isIdentityVerified ?? false) && (_user?.isPhoneVerified ?? false))
+            ? null
+            : _buildActionBanner(),
     );
   }
 
@@ -472,15 +487,21 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
   }
 
   Widget _buildGridView(List<Listing> listings) {
-    return Column(
-      children: listings.map((listing) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 32.0),
-          child: _buildListingCard(
-            listing: listing,
-          ),
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 24,
+        childAspectRatio: 0.65,
+      ),
+      itemCount: listings.length,
+      itemBuilder: (context, index) {
+        return _buildListingCard(
+          listing: listings[index],
         );
-      }).toList(),
+      },
     );
   }
 
@@ -708,6 +729,8 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
           const SizedBox(height: 12),
           Text(
             listing.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -716,6 +739,8 @@ class _HostingListingsTabState extends State<HostingListingsTab> {
           const SizedBox(height: 4),
           Text(
             listing.subtitle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey.shade600,

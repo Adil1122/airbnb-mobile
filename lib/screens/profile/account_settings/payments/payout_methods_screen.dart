@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../services/payment_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PayoutMethodsScreen extends StatelessWidget {
   const PayoutMethodsScreen({super.key});
@@ -50,7 +52,7 @@ class PayoutMethodsScreen extends StatelessWidget {
             
             // Set up payouts Button
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () => _setupPayouts(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF222222),
                 foregroundColor: Colors.white,
@@ -125,5 +127,43 @@ class PayoutMethodsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+  Future<void> _setupPayouts(BuildContext context) async {
+    final paymentService = PaymentService();
+    
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.black)),
+    );
+
+    try {
+      // 1. Create or get host account
+      await paymentService.createHostStripeAccount();
+      
+      // 2. Get onboarding link
+      final url = await paymentService.getHostOnboardingLink();
+      
+      if (context.mounted) Navigator.pop(context); // Close loading
+
+      if (url != null) {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          throw Exception('Could not launch onboarding link');
+        }
+      } else {
+        throw Exception('Failed to get onboarding link');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        if (Navigator.canPop(context)) Navigator.pop(context); // Close loading if still open
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 }

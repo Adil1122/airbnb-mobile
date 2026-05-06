@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.airbnb_mobile"
-    compileSdk = 35
+    compileSdk = 36
     buildToolsVersion = "34.0.0"
     ndkVersion = flutter.ndkVersion
 
@@ -36,6 +36,7 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }

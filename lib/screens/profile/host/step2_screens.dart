@@ -616,14 +616,14 @@ class PhotoUploadScreen extends StatefulWidget {
 class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
   bool _isSaving = false;
   final HostService _hostService = HostService();
-  final List<String> _photos = [];
+  final List<XFile> _photos = [];
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
-        _photos.add(image.path);
+        _photos.add(image);
       });
     }
   }
@@ -821,9 +821,12 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
                         onPressed: () async {
                           setState(() => _isSaving = true);
                           try {
-                            for (var path in _photos) {
-                              if (!kIsWeb) {
-                                await _hostService.uploadImage(widget.listing.id, path);
+                            for (var file in _photos) {
+                              if (kIsWeb) {
+                                final bytes = await file.readAsBytes();
+                                await _hostService.uploadImage(widget.listing.id, file.path, bytes: bytes);
+                              } else {
+                                await _hostService.uploadImage(widget.listing.id, file.path);
                               }
                             }
                             
@@ -873,20 +876,20 @@ class _PhotoUploadScreenState extends State<PhotoUploadScreen> {
     );
   }
 
-  Widget _buildPhotoCard(BuildContext context, String path, {bool isCover = false}) {
+  Widget _buildPhotoCard(BuildContext context, XFile file, {bool isCover = false}) {
     return Stack(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: kIsWeb
               ? Image.network(
-                  path,
+                  file.path,
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,
                 )
               : Image.file(
-                  File(path),
+                  File(file.path),
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,

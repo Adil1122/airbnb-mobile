@@ -1,11 +1,51 @@
 import 'package:flutter/material.dart';
 import 'edit_host_profile_screen.dart';
+import '../../../services/auth_service.dart';
+import '../../../models/user_model.dart';
+import 'package:flutter/foundation.dart';
 
-class HostProfileScreen extends StatelessWidget {
+class HostProfileScreen extends StatefulWidget {
   const HostProfileScreen({super.key});
 
   @override
+  State<HostProfileScreen> createState() => _HostProfileScreenState();
+}
+
+class _HostProfileScreenState extends State<HostProfileScreen> {
+  UserModel? _user;
+  bool _isLoading = true;
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() => _isLoading = true);
+    final user = await _authService.getProfile();
+    if (mounted) {
+      setState(() {
+        _user = user;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.black)));
+    }
+
+    String getBaseUrl() {
+      if (kIsWeb) return 'http://localhost:3001';
+      return 'http://192.168.1.12:3001';
+    }
+
+    final avatarUrl = _user?.avatar != null ? '${getBaseUrl()}${_user!.avatar}' : null;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -25,14 +65,15 @@ class HostProfileScreen extends StatelessWidget {
                 border: Border.all(color: Colors.grey.shade200),
               ),
               child: TextButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const EditHostProfileScreen(),
-                      fullscreenDialog: true, // Opens with 'X' and vertical slide
+                      fullscreenDialog: true,
                     ),
                   );
+                  _loadProfile();
                 },
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -80,21 +121,21 @@ class HostProfileScreen extends StatelessWidget {
                         color: Color(0xFF222222),
                         shape: BoxShape.circle,
                       ),
-                      child: const Center(
-                        child: Text(
-                          'A',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                      child: ClipOval(
+                        child: avatarUrl != null 
+                          ? Image.network(avatarUrl, fit: BoxFit.cover, errorBuilder: (c, e, s) => Center(child: Text(_user?.name.substring(0, 1).toUpperCase() ?? '?', style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold))))
+                          : Center(
+                              child: Text(
+                                _user?.name.isNotEmpty == true ? _user!.name.substring(0, 1).toUpperCase() : '?',
+                                style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold),
+                              ),
+                            ),
                       ),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Ahmad',
-                      style: TextStyle(
+                    Text(
+                      _user?.name ?? 'Ahmad',
+                      style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
@@ -142,7 +183,16 @@ class HostProfileScreen extends StatelessWidget {
               SizedBox(
                 width: 200,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EditHostProfileScreen(),
+                        fullscreenDialog: true,
+                      ),
+                    );
+                    _loadProfile();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFE31C5F), // Airbnb Pink
                     foregroundColor: Colors.white,

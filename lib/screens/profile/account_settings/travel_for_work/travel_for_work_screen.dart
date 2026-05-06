@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../services/user_settings_service.dart';
+import '../../../../models/user_settings_model.dart';
 
 class TravelForWorkScreen extends StatefulWidget {
   const TravelForWorkScreen({super.key});
@@ -9,12 +11,42 @@ class TravelForWorkScreen extends StatefulWidget {
 
 class _TravelForWorkScreenState extends State<TravelForWorkScreen> {
   final TextEditingController _emailController = TextEditingController();
+  final UserSettingsService _settingsService = UserSettingsService();
+  UserSettingsModel? _settings;
+  bool _isLoading = true;
   bool _isButtonEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _emailController.addListener(_updateButtonState);
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await _settingsService.getSettings();
+    if (mounted) {
+      setState(() {
+        _settings = settings ?? UserSettingsModel();
+        _emailController.text = _settings?.businessEmail ?? '';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _saveEmail() async {
+    if (_emailController.text.isEmpty) return;
+    
+    setState(() => _isLoading = true);
+    await _settingsService.updateSettings({
+      'businessEmail': _emailController.text,
+      'isTravelForWorkEnabled': true,
+    });
+    
+    if (mounted) {
+      setState(() => _isLoading = false);
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -36,6 +68,12 @@ class _TravelForWorkScreenState extends State<TravelForWorkScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: Colors.black)),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -132,7 +170,7 @@ class _TravelForWorkScreenState extends State<TravelForWorkScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isButtonEnabled ? () {} : null,
+                  onPressed: _isButtonEnabled ? _saveEmail : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _isButtonEnabled ? const Color(0xFF222222) : const Color(0xFFF0F0F0),
                     foregroundColor: _isButtonEnabled ? Colors.white : Colors.black26,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../services/user_settings_service.dart';
+import '../../../../models/user_settings_model.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -9,11 +11,40 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final UserSettingsService _settingsService = UserSettingsService();
+  UserSettingsModel? _settings;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await _settingsService.getSettings();
+    if (mounted) {
+      setState(() {
+        _settings = settings ?? UserSettingsModel();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _updateNotificationPreference(String category, String key, bool value) async {
+    if (_settings == null) return;
+    
+    final prefs = Map<String, dynamic>.from(_settings!.notificationPreferences ?? {});
+    final categoryPrefs = Map<String, dynamic>.from(prefs[category] ?? {});
+    categoryPrefs[key] = value;
+    prefs[category] = categoryPrefs;
+
+    setState(() {
+      _settings = _settings!.copyWith(notificationPreferences: prefs);
+    });
+
+    await _settingsService.updateSettings({'notificationPreferences': prefs});
   }
 
   @override
@@ -24,6 +55,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: Colors.black)),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -99,18 +136,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               _buildNotificationItem(
                 'Recognition and achievements',
                 'Get recognized for reaching hosting milestones and Superhost status.',
+                'recognition',
               ),
               _buildNotificationItem(
                 'Insights and tips',
                 'Learn about best hosting practices and get access to exclusive hosting perks.',
+                'insights',
               ),
               _buildNotificationItem(
                 'Pricing trends and suggestions',
                 'Optimize your price with data-backed tips and insights.',
+                'pricing',
               ),
               _buildNotificationItem(
                 'Hosting perks',
                 'Take advantage of Airbnb perks like discounts on partner products and special promotions.',
+                'perks',
               ),
             ],
           ),
@@ -122,10 +163,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               _buildNotificationItem(
                 'News and updates',
                 'Be first to know about new tools and changes to the app and our service.',
+                'news',
               ),
               _buildNotificationItem(
                 'Local laws and regulations',
                 'Stay up to date on laws and regulations in your area.',
+                'laws',
               ),
             ],
           ),
@@ -137,10 +180,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               _buildNotificationItem(
                 'Inspiration and offers',
                 'Get personalized recommendations and special offers.',
+                'inspiration',
               ),
               _buildNotificationItem(
                 'Trip planning',
                 'Get tips and suggestions for planning your next trip.',
+                'planning',
               ),
             ],
           ),
@@ -152,14 +197,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               _buildNotificationItem(
                 'News and programs',
                 'Stay up to date on the latest news from Airbnb.',
+                'airbnbNews',
               ),
               _buildNotificationItem(
                 'Feedback',
                 'Help us improve by providing feedback on your experience.',
+                'feedback',
               ),
               _buildNotificationItem(
                 'Travel regulations',
                 'Stay up to date on travel regulations.',
+                'regulations',
               ),
             ],
           ),
@@ -171,6 +219,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               _buildNotificationItem(
                 'All offers and updates',
                 'Unsubscribe from all non-transactional emails and notifications.',
+                'unsubscribe',
                 isUnsubscribe: true,
               ),
             ],
@@ -198,19 +247,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               _buildNotificationItem(
                 'Account activity',
                 'Get updates on your account activity and security.',
+                'activity',
               ),
               _buildNotificationItem(
                 'Listing activity',
                 'Get updates on your listing activity.',
+                'listing',
                 status: 'On: Email, Push, and SMS',
               ),
               _buildNotificationItem(
                 'Guest policies',
                 'Keep up to date on important info about using Airbnb.',
+                'guestPolicies',
               ),
               _buildNotificationItem(
                 'Host policies',
                 'Keep up to date on important info about hosting on Airbnb.',
+                'hostPolicies',
               ),
             ],
           ),
@@ -222,6 +275,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               _buildNotificationItem(
                 'Reminders',
                 'Get important reminders about your reservations, listings, and account activity.',
+                'reminders',
               ),
             ],
           ),
@@ -233,6 +287,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               _buildNotificationItem(
                 'Messages',
                 'Never miss important messages from your Hosts or guests.',
+                'messages',
                 channels: ['Email', 'Push notifications', 'SMS'],
               ),
             ],
@@ -267,7 +322,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
     );
   }
 
-  Widget _buildNotificationItem(String title, String description, {String status = 'On: Email and Push', bool isUnsubscribe = false, List<String>? channels}) {
+  Widget _buildNotificationItem(String title, String description, String category, {String status = 'On: Email and Push', bool isUnsubscribe = false, List<String>? channels}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
       child: Row(
@@ -289,7 +344,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               if (isUnsubscribe) {
                 _showUnsubscribeModal(context);
               } else {
-                _showEditNotificationModal(context, title, description, channels: channels);
+                _showEditNotificationModal(context, title, description, category, channels: channels);
               }
             },
             child: const Text(
@@ -399,75 +454,78 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
     );
   }
 
-  void _showEditNotificationModal(BuildContext context, String title, String description, {List<String>? channels}) {
+  void _showEditNotificationModal(BuildContext context, String title, String description, String category, {List<String>? channels}) {
     final List<String> channelList = channels ?? ['Email', 'Push notifications', 'SMS', 'Phone calls'];
     
-    // Initial states
-    final Map<String, bool> preferenceStates = {
-      'Email': true,
-      'Push notifications': true,
-      'SMS': false,
-      'Phone calls': false,
-    };
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
+        builder: (context, setModalState) {
+          final Map<String, dynamic> prefs = _settings?.notificationPreferences ?? {};
+          final Map<String, dynamic> categoryPrefs = prefs[category] ?? {};
+
+          return Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                alignment: Alignment.topLeft,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.black),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.black),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 24),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                description,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                  height: 1.4,
+                const SizedBox(height: 12),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black54,
+                    height: 1.4,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 32),
-              ...channelList.map((channel) => Padding(
-                padding: const EdgeInsets.only(bottom: 32.0),
-                child: _buildPreferenceRow(
-                  channel, 
-                  preferenceStates[channel] ?? false, 
-                  (val) => setModalState(() => preferenceStates[channel] = val),
-                  isDisabled: title == 'Guest policies' && channel == 'Email',
-                ),
-              )),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
+                const SizedBox(height: 32),
+                ...channelList.map((channel) {
+                  final bool isEnabled = categoryPrefs[channel] ?? (channel == 'Email' || channel == 'Push notifications');
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 32.0),
+                    child: _buildPreferenceRow(
+                      channel, 
+                      isEnabled, 
+                      (val) {
+                        setModalState(() {});
+                        _updateNotificationPreference(category, channel, val);
+                      },
+                      isDisabled: title == 'Guest policies' && channel == 'Email',
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

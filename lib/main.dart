@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:airbnb_mobile/auth/login_signup_screen.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:airbnb_mobile/screens/main_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  if (!kIsWeb) {
+    // Replace with your actual publishable key from Stripe Dashboard
+    Stripe.publishableKey = "pk_test_placeholder";
+    await Stripe.instance.applySettings();
+  }
+  
   runApp(const AirbnbApp());
 }
 

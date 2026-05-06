@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../services/user_settings_service.dart';
+import '../../../../models/user_settings_model.dart';
 
 class PrivacyScreen extends StatefulWidget {
   const PrivacyScreen({super.key});
@@ -8,16 +10,48 @@ class PrivacyScreen extends StatefulWidget {
 }
 
 class _PrivacyScreenState extends State<PrivacyScreen> {
-  bool _showReadReceipts = true;
-  bool _includeInSearch = false;
-  bool _showHomeCity = true;
-  bool _showTripType = true;
-  bool _showLengthOfStay = true;
-  bool _showBookedServices = true;
-  bool _improveAI = true;
+  final UserSettingsService _settingsService = UserSettingsService();
+  UserSettingsModel? _settings;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await _settingsService.getSettings();
+    if (mounted) {
+      setState(() {
+        _settings = settings ?? UserSettingsModel();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _updateSetting(String key, dynamic value) async {
+    if (_settings == null) return;
+    
+    // Optimistic update
+    setState(() {
+      final json = _settings!.toJson();
+      json[key] = value;
+      _settings = UserSettingsModel.fromJson(json);
+    });
+
+    await _settingsService.updateSettings({key: value});
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: Colors.black)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -58,8 +92,8 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
             _buildPrivacySwitch(
               title: 'Show people when I\'ve read their messages.',
               subtitle: 'Learn more',
-              value: _showReadReceipts,
-              onChanged: (val) => setState(() => _showReadReceipts = val),
+              value: _settings?.showReadReceipts ?? true,
+              onChanged: (val) => _updateSetting('showReadReceipts', val),
               underlineSubtitle: true,
             ),
             const Divider(height: 64, thickness: 1, color: Color(0xFFF0F0F0)),
@@ -70,8 +104,8 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
             _buildPrivacySwitch(
               title: 'Include my listing(s) in search engines',
               subtitle: 'Turning this on means search engines, like Google, will display your listing page(s) in search results.',
-              value: _includeInSearch,
-              onChanged: (val) => setState(() => _includeInSearch = val),
+              value: _settings?.includeInSearch ?? false,
+              onChanged: (val) => _updateSetting('includeInSearch', val),
             ),
             const Divider(height: 64, thickness: 1, color: Color(0xFFF0F0F0)),
             
@@ -94,29 +128,29 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
             _buildPrivacySwitch(
               title: 'Show my home city and country',
               subtitle: 'Ex: City and country',
-              value: _showHomeCity,
-              onChanged: (val) => setState(() => _showHomeCity = val),
+              value: _settings?.showHomeCity ?? true,
+              onChanged: (val) => _updateSetting('showHomeCity', val),
             ),
             const SizedBox(height: 32),
             _buildPrivacySwitch(
               title: 'Show my trip type',
               subtitle: 'Ex: Stayed with kids or pets',
-              value: _showTripType,
-              onChanged: (val) => setState(() => _showTripType = val),
+              value: _settings?.showTripType ?? true,
+              onChanged: (val) => _updateSetting('showTripType', val),
             ),
             const SizedBox(height: 32),
             _buildPrivacySwitch(
               title: 'Show my length of stay',
               subtitle: 'Ex: A few nights, about a week, etc.',
-              value: _showLengthOfStay,
-              onChanged: (val) => setState(() => _showLengthOfStay = val),
+              value: _settings?.showLengthOfStay ?? true,
+              onChanged: (val) => _updateSetting('showLengthOfStay', val),
             ),
             const SizedBox(height: 32),
             _buildPrivacySwitch(
               title: 'Show my booked services',
               subtitle: 'Ex: Gourmet brunch or tasting menu',
-              value: _showBookedServices,
-              onChanged: (val) => setState(() => _showBookedServices = val),
+              value: _settings?.showBookedServices ?? true,
+              onChanged: (val) => _updateSetting('showBookedServices', val),
             ),
             const Divider(height: 64, thickness: 1, color: Color(0xFFF0F0F0)),
             
@@ -130,8 +164,8 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
             _buildPrivacySwitch(
               title: 'Help improve AI-powered features',
               subtitle: 'When this is on, we use your data to develop and improve AI models that power certain features on Airbnb. Learn more',
-              value: _improveAI,
-              onChanged: (val) => setState(() => _improveAI = val),
+              value: _settings?.improveAI ?? true,
+              onChanged: (val) => _updateSetting('improveAI', val),
             ),
             const SizedBox(height: 32),
             _buildActionBox('Delete my account'),

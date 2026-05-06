@@ -7,9 +7,35 @@ import 'account_settings/account_settings_screen.dart';
 import '../host/hosting_main_screen.dart';
 import '../../services/auth_service.dart';
 import '../../auth/login_signup_screen.dart';
+import '../../models/user_model.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  UserModel? _user;
+  bool _isLoading = true;
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final user = await _authService.getProfile();
+    if (mounted) {
+      setState(() {
+        _user = user;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,127 +58,142 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Profile',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // User Info Card
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ProfileEditScreen()),
-                );
-              },
-              child: _buildInfoCard(),
-            ),
-            const SizedBox(height: 24),
-
-            // Past trips & Connections Row
-            Row(
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator(color: Colors.black))
+        : SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const PastTripsScreen()),
-                      );
-                    },
-                    child: _buildSubCard(
-                      title: 'Past trips',
-                      imagePath: 'C:\\Users\\Computer Arena\\.gemini\\antigravity\\brain\\81fcd7ad-8900-4a3e-b0d4-241b5d143fb1\\profile_suitcase_icon_1775037872147.png',
-                      isNew: true,
-                    ),
+                const Text(
+                  'Profile',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ConnectionsScreen()),
-                      );
-                    },
-                    child: _buildSubCard(
-                      title: 'Connections',
-                      imagePath: 'C:\\Users\\Computer Arena\\.gemini\\antigravity\\brain\\81fcd7ad-8900-4a3e-b0d4-241b5d143fb1\\profile_connections_icon_1775038024146.png',
-                      isNew: true,
-                    ),
-                  ),
+                const SizedBox(height: 24),
+
+                // User Info Card
+                GestureDetector(
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProfileEditScreen()),
+                    );
+                    _loadProfile();
+                  },
+                  child: _buildInfoCard(),
                 ),
+                const SizedBox(height: 24),
+
+                // Past trips & Connections Row
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const PastTripsScreen()),
+                          );
+                        },
+                        child: _buildSubCard(
+                          title: 'Past trips',
+                          imagePath: 'C:\\Users\\Computer Arena\\.gemini\\antigravity\\brain\\81fcd7ad-8900-4a3e-b0d4-241b5d143fb1\\profile_suitcase_icon_1775037872147.png',
+                          isNew: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ConnectionsScreen()),
+                          );
+                        },
+                        child: _buildSubCard(
+                          title: 'Connections',
+                          imagePath: 'C:\\Users\\Computer Arena\\.gemini\\antigravity\\brain\\81fcd7ad-8900-4a3e-b0d4-241b5d143fb1\\profile_connections_icon_1775038024146.png',
+                          isNew: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Become a Host Card
+                GestureDetector(
+                  onTap: () async {
+                    final token = await _authService.getToken();
+                    if (context.mounted) {
+                      if (token != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const HostingMainScreen()),
+                        );
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
+                        );
+                      }
+                    }
+                  },
+                  child: _buildBecomeHostCard(),
+                ),
+                const SizedBox(height: 32),
+
+                // Settings Items
+                _buildSettingsRow(
+                  Icons.settings_outlined, 
+                  'Account settings',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+                _buildSettingsRow(Icons.help_outline, 'Get help'),
+                const SizedBox(height: 24),
+                _buildSettingsRow(Icons.person_outline, 'View profile'),
+                const SizedBox(height: 24),
+                _buildSettingsRow(Icons.back_hand_outlined, 'Privacy'),
+                const SizedBox(height: 32),
+
+                const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
+                const SizedBox(height: 32),
+
+                _buildSettingsRow(Icons.people_outline, 'Refer a host'),
+                const SizedBox(height: 24),
+                _buildSettingsRow(Icons.person_search_outlined, 'Find a co-host'),
+                const SizedBox(height: 24),
+                _buildSettingsRow(Icons.description_outlined, 'Legal'),
+                const SizedBox(height: 24),
+                _buildSettingsRow(
+                  Icons.meeting_room_outlined, 
+                  'Log out', 
+                  hasChevron: false,
+                  onTap: () async {
+                    await _authService.logout();
+                    if (mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
+                        (route) => false,
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 48),
               ],
             ),
-            const SizedBox(height: 24),
-
-            // Become a Host Card
-            GestureDetector(
-              onTap: () async {
-                final authService = AuthService();
-                final token = await authService.getToken();
-                if (context.mounted) {
-                  if (token != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const HostingMainScreen()),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
-                    );
-                  }
-                }
-              },
-              child: _buildBecomeHostCard(),
-            ),
-            const SizedBox(height: 32),
-
-            // Settings Items
-            _buildSettingsRow(
-              Icons.settings_outlined, 
-              'Account settings',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AccountSettingsScreen()),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            _buildSettingsRow(Icons.help_outline, 'Get help'),
-            const SizedBox(height: 24),
-            _buildSettingsRow(Icons.person_outline, 'View profile'),
-            const SizedBox(height: 24),
-            _buildSettingsRow(Icons.back_hand_outlined, 'Privacy'),
-            const SizedBox(height: 32),
-
-            const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
-            const SizedBox(height: 32),
-
-            _buildSettingsRow(Icons.people_outline, 'Refer a host'),
-            const SizedBox(height: 24),
-            _buildSettingsRow(Icons.person_search_outlined, 'Find a co-host'),
-            const SizedBox(height: 24),
-            _buildSettingsRow(Icons.description_outlined, 'Legal'),
-            const SizedBox(height: 24),
-            _buildSettingsRow(Icons.meeting_room_outlined, 'Log out', hasChevron: false),
-            const SizedBox(height: 48),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -180,10 +221,10 @@ class ProfileScreen extends StatelessWidget {
               color: Color(0xFF222222),
               shape: BoxShape.circle,
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                'A',
-                style: TextStyle(
+                _user?.name.isNotEmpty == true ? _user!.name.substring(0, 1).toUpperCase() : '?',
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 48,
                   fontWeight: FontWeight.bold,
@@ -192,9 +233,9 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Ahmad',
-            style: TextStyle(
+          Text(
+            _user?.name ?? 'Ahmad',
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
@@ -233,8 +274,8 @@ class ProfileScreen extends StatelessWidget {
             children: [
               Image.network(
                 title == 'Past trips'
-                    ? 'https://cdn-icons-png.flaticon.com/512/2921/2921501.png' // Stylized Suitcase
-                    : 'https://cdn-icons-png.flaticon.com/512/3468/3468192.png', // Stylized People
+                    ? 'https://cdn-icons-png.flaticon.com/512/2921/2921501.png'
+                    : 'https://cdn-icons-png.flaticon.com/512/3468/3468192.png',
                 height: 80,
                 fit: BoxFit.contain,
               ),
@@ -291,7 +332,7 @@ class ProfileScreen extends StatelessWidget {
       child: Row(
         children: [
           Image.network(
-            'https://cdn-icons-png.flaticon.com/512/3014/3014569.png', // Stylized Host
+            'https://cdn-icons-png.flaticon.com/512/3014/3014569.png',
             height: 60,
           ),
           const SizedBox(width: 20),

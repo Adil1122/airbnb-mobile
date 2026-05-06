@@ -89,6 +89,7 @@ class Listing {
 
   // New Policy & Rule fields
   final String cancellationPolicy;
+  final int minNights;
   final String checkInTime;
   final String checkOutTime;
   final List<String> safetyInfo;
@@ -141,6 +142,7 @@ class Listing {
     this.hostResponseRate = '100%',
     this.hostResponseTime = 'within an hour',
     this.cancellationPolicy = 'Flexible',
+    this.minNights = 1,
     this.checkInTime = '1:00 PM - 6:00 PM',
     this.checkOutTime = '11:00 AM',
     this.safetyInfo = const ['Smoke alarm', 'Carbon monoxide alarm'],
@@ -175,7 +177,8 @@ class Listing {
       if (mainImage.startsWith('/uploads')) {
         mainImage = '${ApiConfig.baseUrl}$mainImage';
       } else if (mainImage.isEmpty) {
-        mainImage = imageUrls.isNotEmpty ? imageUrls.first : 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=500&q=80';
+        // Use the first image from the images list if imageUrl is empty
+        mainImage = imageUrls.isNotEmpty ? imageUrls.first : 'https://via.placeholder.com/500x300?text=No+Image+Available';
       }
       
       final rawReviews = json['reviews'];
@@ -222,6 +225,7 @@ class Listing {
         hostImageUrl: hImage,
         hostBio: hBio,
         cancellationPolicy: json['cancellationPolicy']?.toString() ?? 'Flexible',
+        minNights: int.tryParse(json['minNights']?.toString() ?? '1') ?? 1,
         checkInTime: json['checkInTime']?.toString() ?? '1:00 PM - 6:00 PM',
         checkOutTime: json['checkOutTime']?.toString() ?? '11:00 AM',
         weekendPrice: double.tryParse(json['weekendPrice']?.toString() ?? ''),

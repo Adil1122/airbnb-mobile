@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import '../../../../services/user_settings_service.dart';
+import '../../../../models/user_settings_model.dart';
 
 class AccessibilityScreen extends StatefulWidget {
   const AccessibilityScreen({super.key});
@@ -9,11 +11,47 @@ class AccessibilityScreen extends StatefulWidget {
 }
 
 class _AccessibilityScreenState extends State<AccessibilityScreen> {
-  bool _mapZoomControls = false;
-  bool _mapPanControls = false;
+  final UserSettingsService _settingsService = UserSettingsService();
+  UserSettingsModel? _settings;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await _settingsService.getSettings();
+    if (mounted) {
+      setState(() {
+        _settings = settings ?? UserSettingsModel();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _updateSetting(String key, dynamic value) async {
+    if (_settings == null) return;
+    
+    setState(() {
+      final json = _settings!.toJson();
+      json[key] = value;
+      _settings = UserSettingsModel.fromJson(json);
+    });
+
+    await _settingsService.updateSettings({key: value});
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: Colors.black)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -44,12 +82,8 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
             _buildToggleItem(
               title: 'Map zoom controls',
               subtitle: 'Shows dedicated controls to zoom in and out on maps.',
-              value: _mapZoomControls,
-              onChanged: (val) {
-                setState(() {
-                  _mapZoomControls = val;
-                });
-              },
+              value: _settings?.mapZoomControls ?? false,
+              onChanged: (val) => _updateSetting('mapZoomControls', val),
             ),
             
             const SizedBox(height: 32),
@@ -58,12 +92,8 @@ class _AccessibilityScreenState extends State<AccessibilityScreen> {
             _buildToggleItem(
               title: 'Map pan controls',
               subtitle: 'Shows directional buttons to pan around maps.',
-              value: _mapPanControls,
-              onChanged: (val) {
-                setState(() {
-                  _mapPanControls = val;
-                });
-              },
+              value: _settings?.mapPanControls ?? false,
+              onChanged: (val) => _updateSetting('mapPanControls', val),
             ),
           ],
         ),
