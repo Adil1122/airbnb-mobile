@@ -5,6 +5,7 @@ import 'package:airbnb_mobile/services/auth_service.dart';
 import 'package:airbnb_mobile/services/host_service.dart';
 import 'package:airbnb_mobile/models/user_model.dart';
 import 'package:airbnb_mobile/models/listing.dart';
+import '../../hosting_main_screen.dart';
 
 class FinishUpPublishScreen extends StatefulWidget {
   final Listing? listing;
@@ -51,7 +52,10 @@ class _FinishUpPublishScreenState extends State<FinishUpPublishScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true); // Return true to indicate success
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HostingMainScreen(initialIndex: 2)),
+          (route) => false,
+        );
       }
     } catch (e) {
       if (mounted) {

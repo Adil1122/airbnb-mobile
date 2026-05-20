@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class EarningsScreen extends StatelessWidget {
   const EarningsScreen({super.key});
+
+  String get _currentMonthLabel {
+    final now = DateTime.now();
+    return 'Total for ${DateFormat('MMMM').format(now)} (USD)';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,9 +65,9 @@ class EarningsScreen extends StatelessWidget {
                           style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Total for April (USD)',
-                          style: TextStyle(fontSize: 14, color: Colors.black54),
+                        Text(
+                          _currentMonthLabel,
+                          style: const TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                         const SizedBox(height: 32),
                         Row(

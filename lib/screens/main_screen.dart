@@ -13,16 +13,20 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  final GlobalKey<TripsScreenState> _tripsKey = GlobalKey<TripsScreenState>();
   int _currentIndex = 0;
 
   List<Widget> get _pages => [
     const ExploreScreen(),
     const WishlistScreen(),
-    TripsScreen(onGetStarted: () {
-      setState(() {
-        _currentIndex = 0;
-      });
-    }),
+    TripsScreen(
+      key: _tripsKey,
+      onGetStarted: () {
+        setState(() {
+          _currentIndex = 0;
+        });
+      },
+    ),
     const MessagesScreen(),
     const ProfileScreen(),
   ];
@@ -40,6 +44,10 @@ class _MainScreenState extends State<MainScreen> {
           setState(() {
             _currentIndex = index;
           });
+          // Refresh trips when switching to the Trips tab
+          if (index == 2) {
+            _tripsKey.currentState?.refresh();
+          }
         },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFFE61E4D),

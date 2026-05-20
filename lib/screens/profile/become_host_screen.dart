@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'host/step1_screens.dart';
-import 'dart:io';
 
 import '../../services/host_service.dart';
 import '../../models/listing.dart';
@@ -73,8 +71,7 @@ class _BecomeHostScreenState extends State<BecomeHostScreen> {
               '1',
               'Tell us about your place',
               'Share some basic info, like where it is and how many guests can stay.',
-              'C:/Users/Computer Arena/.gemini/antigravity/brain/890973fe-bc41-4cc2-99b8-3adbdbd4a355/airbnb_host_step1_bed_1775206460702.png',
-              kIsWeb ? 'https://cdn-icons-png.flaticon.com/512/2990/2990554.png' : null,
+              'https://cdn-icons-png.flaticon.com/512/2990/2990554.png',
             ),
             
             const Padding(
@@ -87,8 +84,7 @@ class _BecomeHostScreenState extends State<BecomeHostScreen> {
               '2',
               'Make it stand out',
               'Add 5 or more photos plus a title and description—we\'ll help you out.',
-              'C:/Users/Computer Arena/.gemini/antigravity/brain/890973fe-bc41-4cc2-99b8-3adbdbd4a355/airbnb_host_step2_living_room_1775206485626.png',
-              kIsWeb ? 'https://cdn-icons-png.flaticon.com/512/3222/3222687.png' : null,
+              'https://cdn-icons-png.flaticon.com/512/3222/3222687.png',
             ),
             
             const Padding(
@@ -101,8 +97,7 @@ class _BecomeHostScreenState extends State<BecomeHostScreen> {
               '3',
               'Finish up and publish',
               'Choose a starting price, verify a few details, then publish your listing.',
-              'C:/Users/Computer Arena/.gemini/antigravity/brain/890973fe-bc41-4cc2-99b8-3adbdbd4a355/airbnb_host_step3_door_1775206507009.png',
-              kIsWeb ? 'https://cdn-icons-png.flaticon.com/512/3061/3061413.png' : null,
+              'https://cdn-icons-png.flaticon.com/512/3061/3061413.png',
             ),
           ],
         ),
@@ -146,7 +141,7 @@ class _BecomeHostScreenState extends State<BecomeHostScreen> {
     );
   }
 
-  Widget _buildStepRow(String number, String title, String description, String localPath, String? webPath) {
+  Widget _buildStepRow(String number, String title, String description, String imageUrl) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -193,9 +188,7 @@ class _BecomeHostScreenState extends State<BecomeHostScreen> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: (kIsWeb && webPath != null)
-                ? Image.network(webPath, fit: BoxFit.cover)
-                : Image.file(File(localPath), fit: BoxFit.cover),
+            child: Image.network(imageUrl, fit: BoxFit.cover),
           ),
         ),
       ],

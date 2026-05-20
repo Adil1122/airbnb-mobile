@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import '../main_screen.dart';
 
 class PastTripsScreen extends StatelessWidget {
@@ -39,17 +37,11 @@ class PastTripsScreen extends StatelessWidget {
               
               // Suitcase Image
               Center(
-                child: kIsWeb 
-                  ? Image.network(
-                      'https://cdn-icons-png.flaticon.com/512/2921/2921501.png',
-                      height: 280,
-                      fit: BoxFit.contain,
-                    )
-                  : Image.file(
-                      File('C:/Users/Computer Arena/.gemini/antigravity/brain/890973fe-bc41-4cc2-99b8-3adbdbd4a355/airbnb_past_trips_suitcase_1775205860025.png'),
-                      height: 280,
-                      fit: BoxFit.contain,
-                    ),
+                child: Image.network(
+                  'https://cdn-icons-png.flaticon.com/512/2921/2921501.png',
+                  height: 280,
+                  fit: BoxFit.contain,
+                ),
               ),
               
               const SizedBox(height: 48),

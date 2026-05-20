@@ -125,7 +125,7 @@ class _ReferHostScreenState extends State<ReferHostScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Eligible locations and listing types only. Amounts expire Jun. 21, 2026. Terms apply',
+                    'Eligible locations and listing types only. Terms apply.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12,

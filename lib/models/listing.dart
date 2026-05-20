@@ -109,6 +109,26 @@ class Listing {
   final String? status;
   final String propertyType;
   final int? hostId;
+  final DateTime? hostSince;
+  final bool isSuperhost;
+  final DateTime? availableFrom;
+  final DateTime? availableTo;
+  final String? experienceDurationHours;
+  final String category;
+
+  int get hostMonthsHosting {
+    if (hostSince == null) return 0;
+    final now = DateTime.now();
+    return (now.year - hostSince!.year) * 12 + now.month - hostSince!.month;
+  }
+
+  String get hostingDurationLabel {
+    final months = hostMonthsHosting;
+    if (months < 1) return '< 1 month hosting';
+    if (months < 12) return '$months month${months == 1 ? '' : 's'} hosting';
+    final years = months ~/ 12;
+    return '$years year${years == 1 ? '' : 's'} hosting';
+  }
 
   const Listing({
     required this.id,
@@ -156,6 +176,12 @@ class Listing {
     this.houseManual,
     this.checkoutInstructions,
     this.interactionPreference,
+    this.hostSince,
+    this.isSuperhost = false,
+    this.availableFrom,
+    this.availableTo,
+    this.experienceDurationHours,
+    this.category = '',
   });
 
   factory Listing.fromJson(Map<String, dynamic> json) {
@@ -240,7 +266,24 @@ class Listing {
         interactionPreference: json['interactionPreference']?.toString(),
         status: json['status']?.toString(),
         propertyType: json['type']?.toString() ?? 'Apartment',
-        hostId: int.tryParse(json['hostId']?.toString() ?? json['host_id']?.toString() ?? ''),
+        hostId: int.tryParse(
+          json['hostId']?.toString() ??
+          json['host_id']?.toString() ??
+          hostData?['id']?.toString() ??
+          ''
+        ),
+        hostSince: hostData?['hostSince'] != null
+            ? DateTime.tryParse(hostData!['hostSince'].toString())
+            : null,
+        isSuperhost: hostData?['isSuperhost'] == true,
+        availableFrom: json['availableFrom'] != null
+            ? DateTime.tryParse(json['availableFrom'].toString())
+            : null,
+        availableTo: json['availableTo'] != null
+            ? DateTime.tryParse(json['availableTo'].toString())
+            : null,
+        experienceDurationHours: json['durationHours']?.toString(),
+        category: json['category']?.toString() ?? '',
       );
     } catch (e) {
       print('ERROR: Exception in Listing.fromJson: $e for JSON: $json');

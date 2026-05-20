@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'screens/main_screen.dart';
+import 'auth/login_signup_screen.dart';
 import 'utils/api_config.dart';
 
 @pragma('vm:entry-point')
@@ -67,8 +68,9 @@ Future<void> _initBackgroundServices() async {
     try {
       Stripe.publishableKey = const String.fromEnvironment(
         'STRIPE_PK',
-        defaultValue: 'pk_test_placeholder',
+        defaultValue: 'pk_test_JOTEYdyZzn9N4VPvuAVQYBty00Opd7riRE',
       );
+      debugPrint('Stripe initialized with: ${Stripe.publishableKey}');
       await Stripe.instance.applySettings();
     } catch (e) {
       debugPrint('Stripe initialization failed: $e');
@@ -99,7 +101,39 @@ class AirbnbApp extends StatelessWidget {
         fontFamily: 'Roboto',
         useMaterial3: true,
       ),
-      home: const MainScreen(),
+      home: const AuthGate(),
     );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: _getToken(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(color: Color(0xFFE61E4D)),
+            ),
+          );
+        }
+        
+        // If token exists, go to MainScreen, else go to LoginSignupScreen
+        if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
+          return const MainScreen();
+        }
+        
+        return const LoginSignupScreen();
+      },
+    );
+  }
+
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
   }
 }

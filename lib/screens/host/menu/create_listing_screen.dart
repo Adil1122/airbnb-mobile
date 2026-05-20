@@ -37,7 +37,7 @@ class CreateListingScreen extends StatelessWidget {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
               child: Text(
-                'Welcome back, Ahmad',
+                'Welcome back!',
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,

@@ -64,8 +64,7 @@ class HostStep1IntroScreen extends StatelessWidget {
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: kIsWeb 
-                        ? Container(
+                      child: Container(
                             height: 300,
                             width: double.infinity,
                             decoration: BoxDecoration(
@@ -73,11 +72,6 @@ class HostStep1IntroScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(Icons.home_work_outlined, size: 64, color: Colors.black26),
-                          )
-                        : Image.file(
-                            File('C:/Users/Computer Arena/.gemini/antigravity/brain/7d4a128d-57c1-4474-a7df-7a99dd1c5a54/airbnb_host_step1_house_illustration_1775465541270.png'),
-                            height: 300,
-                            fit: BoxFit.contain,
                           ),
                     ),
                   ),
@@ -972,16 +966,11 @@ class _LocationSelectionScreenState extends State<LocationSelectionScreen> {
                     children: [
                       // Map Placeholder Image
                       Positioned.fill(
-                        child: kIsWeb
-                            ? Container(
+                        child: Container(
                                 color: const Color(0xFFF7F7F7),
                                 child: const Center(
                                   child: Icon(Icons.map_outlined, size: 64, color: Colors.black12),
                                 ),
-                              )
-                            : Image.file(
-                                File('C:/Users/Computer Arena/.gemini/antigravity/brain/7d4a128d-57c1-4474-a7df-7a99dd1c5a54/islamabad_map_placeholder_1775466468675.png'),
-                                fit: BoxFit.cover,
                               ),
                       ),
                       

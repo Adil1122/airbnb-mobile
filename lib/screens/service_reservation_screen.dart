@@ -41,7 +41,7 @@ class _ServiceReservationScreenState extends State<ServiceReservationScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedDate = DateTime(2026, 4, 15);
+    _selectedDate = DateTime.now().add(const Duration(days: 1));
   }
 
   double get _currentPackagePrice => _packages[_selectedPackageIndex]['price'];
@@ -208,7 +208,7 @@ class _ServiceReservationScreenState extends State<ServiceReservationScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('April 2026', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(_getMonthYearLabel(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const Icon(Icons.calendar_today_outlined, size: 20),
             ],
           ),
@@ -237,16 +237,26 @@ class _ServiceReservationScreenState extends State<ServiceReservationScreen> {
     );
   }
 
+  String _getMonthYearLabel() {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    return '${months[_selectedDate.month - 1]} ${_selectedDate.year}';
+  }
+
   Widget _buildCalendarStrip() {
+    final startDate = DateTime.now().add(const Duration(days: 1));
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: List.generate(7, (index) {
-          final dayNum = 12 + index;
-          final isSelected = _selectedDate.day == dayNum;
-          final dayName = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][index];
+        children: List.generate(14, (index) {
+          final date = startDate.add(Duration(days: index));
+          final isSelected = _selectedDate.day == date.day &&
+              _selectedDate.month == date.month &&
+              _selectedDate.year == date.year;
+          const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+          final dayName = dayNames[date.weekday - 1].substring(0, 1);
           return GestureDetector(
-            onTap: () => setState(() => _selectedDate = DateTime(2026, 4, dayNum)),
+            onTap: () => setState(() => _selectedDate = date),
             child: Container(
               width: 45,
               margin: const EdgeInsets.only(right: 8),
@@ -259,7 +269,7 @@ class _ServiceReservationScreenState extends State<ServiceReservationScreen> {
                 children: [
                   Text(dayName, style: TextStyle(color: isSelected ? Colors.white : Colors.grey.shade500, fontSize: 12)),
                   const SizedBox(height: 8),
-                  Text('$dayNum', style: TextStyle(color: isSelected ? Colors.white : Colors.grey.shade700, fontWeight: FontWeight.bold)),
+                  Text('${date.day}', style: TextStyle(color: isSelected ? Colors.white : Colors.grey.shade700, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),

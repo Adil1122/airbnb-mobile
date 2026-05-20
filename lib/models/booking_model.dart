@@ -61,9 +61,9 @@ class Booking {
 
   bool get isUpcoming =>
       (status == 'confirmed' || status == 'pending') &&
-      checkOut.isAfter(DateTime.now());
+      checkOut.isAfter(DateTime.now().subtract(const Duration(hours: 24)));
 
-  bool get isCompleted => status == 'completed' || (status == 'confirmed' && checkOut.isBefore(DateTime.now()));
+  bool get isCompleted => status == 'completed' || (status == 'confirmed' && checkOut.isBefore(DateTime.now().subtract(const Duration(hours: 24))));
 
   bool get isCancelled => status == 'cancelled' || status == 'declined' || status == 'expired';
 

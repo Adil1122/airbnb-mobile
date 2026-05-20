@@ -65,10 +65,14 @@ class HostStep3IntroScreen extends StatelessWidget {
                               ),
                               child: const Icon(Icons.home_work_outlined, size: 64, color: Colors.black26),
                             )
-                          : Image.file(
-                              File('C:/Users/Computer Arena/.gemini/antigravity/brain/7d4a128d-57c1-4474-a7df-7a99dd1c5a54/airbnb_host_step3_house_illustration_1775467357876.png'),
+                          : Container(
                               height: 300,
-                              fit: BoxFit.contain,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.home_work_outlined, size: 64, color: Colors.black26),
                             ),
                     ),
                   ),

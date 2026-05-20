@@ -5,12 +5,10 @@ import '../models/user_model.dart';
 
 import 'package:flutter/foundation.dart';
 
+import '../utils/api_config.dart';
+
 class AuthService {
-  // Use localhost for Web/iOS, 10.0.2.2 for Android emulator, or a fixed IP for physical devices
-  static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:3001/auth';
-    return 'http://192.168.1.12:3001/auth';
-  }
+  static String get baseUrl => ApiConfig.authUrl;
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
@@ -26,10 +24,12 @@ class AuthService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final token = data['auth_token'];
+        final token = data['accessToken'] ?? data['auth_token'];
         final userData = UserModel.fromJson(data['user']);
         
-        await _saveToken(token);
+        if (token != null) {
+          await _saveToken(token);
+        }
         await _saveUser(userData);
 
         return {'success': true, 'user': userData};
@@ -56,10 +56,12 @@ class AuthService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final token = data['auth_token'];
+        final token = data['accessToken'] ?? data['auth_token'];
         final userData = UserModel.fromJson(data['user']);
         
-        await _saveToken(token);
+        if (token != null) {
+          await _saveToken(token);
+        }
         await _saveUser(userData);
 
         return {'success': true, 'user': userData};

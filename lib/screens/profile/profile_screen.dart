@@ -8,6 +8,9 @@ import '../host/hosting_main_screen.dart';
 import '../../services/auth_service.dart';
 import '../../auth/login_signup_screen.dart';
 import '../../models/user_model.dart';
+import '../host_payouts_screen.dart';
+import '../../services/host_service.dart';
+import '../../utils/api_config.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,7 +22,9 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   UserModel? _user;
   bool _isLoading = true;
+  bool _hasListings = false;
   final AuthService _authService = AuthService();
+  final HostService _hostService = HostService();
 
   @override
   void initState() {
@@ -28,10 +33,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadProfile() async {
+    setState(() => _isLoading = true);
     final user = await _authService.getProfile();
+    final listings = await _hostService.getListings();
+    
     if (mounted) {
       setState(() {
         _user = user;
+        _hasListings = listings.isNotEmpty;
         _isLoading = false;
       });
     }
@@ -101,7 +110,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         },
                         child: _buildSubCard(
                           title: 'Past trips',
-                          imagePath: 'C:\\Users\\Computer Arena\\.gemini\\antigravity\\brain\\81fcd7ad-8900-4a3e-b0d4-241b5d143fb1\\profile_suitcase_icon_1775037872147.png',
                           isNew: true,
                         ),
                       ),
@@ -117,7 +125,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         },
                         child: _buildSubCard(
                           title: 'Connections',
-                          imagePath: 'C:\\Users\\Computer Arena\\.gemini\\antigravity\\brain\\81fcd7ad-8900-4a3e-b0d4-241b5d143fb1\\profile_connections_icon_1775038024146.png',
                           isNew: true,
                         ),
                       ),
@@ -128,20 +135,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // Become a Host Card
                 GestureDetector(
-                  onTap: () async {
-                    final token = await _authService.getToken();
-                    if (context.mounted) {
-                      if (token != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const HostingMainScreen()),
-                        );
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
-                        );
-                      }
+                  onTap: () {
+                    if (_user?.role == 'HOST') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HostingMainScreen()),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const BecomeHostScreen()),
+                      );
                     }
                   },
                   child: _buildBecomeHostCard(),
@@ -160,6 +164,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
                 const SizedBox(height: 24),
+                if (_user?.role == 'HOST') ...[
+                  _buildSettingsRow(
+                    Icons.account_balance_wallet_outlined, 
+                    'Payouts & Payments',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HostPayoutsScreen()),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                ],
                 _buildSettingsRow(Icons.help_outline, 'Get help'),
                 const SizedBox(height: 24),
                 _buildSettingsRow(Icons.person_outline, 'View profile'),
@@ -170,10 +187,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
                 const SizedBox(height: 32),
 
-                _buildSettingsRow(Icons.people_outline, 'Refer a host'),
-                const SizedBox(height: 24),
-                _buildSettingsRow(Icons.person_search_outlined, 'Find a co-host'),
-                const SizedBox(height: 24),
+                if (_user?.role == 'HOST') ...[
+                  _buildSettingsRow(Icons.people_outline, 'Refer a host'),
+                  const SizedBox(height: 24),
+                  _buildSettingsRow(Icons.person_search_outlined, 'Find a co-host'),
+                  const SizedBox(height: 24),
+                ],
                 _buildSettingsRow(Icons.description_outlined, 'Legal'),
                 const SizedBox(height: 24),
                 _buildSettingsRow(
@@ -194,6 +213,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
+      floatingActionButton: _isLoading ? null : FloatingActionButton.extended(
+        onPressed: () {
+          if (_user?.role == 'HOST' || _hasListings) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const HostingMainScreen()),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BecomeHostScreen()),
+            );
+          }
+        },
+        backgroundColor: Colors.black,
+        elevation: 4,
+        label: Text(
+          (_user?.role == 'HOST' || _hasListings) ? 'Switch to hosting' : 'Become a host',
+          style: const TextStyle(
+            color: Colors.white, 
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        icon: const Icon(Icons.swap_horiz, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -217,24 +263,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             width: 100,
             height: 100,
-            decoration: const BoxDecoration(
-              color: Color(0xFF222222),
+            decoration: BoxDecoration(
+              color: const Color(0xFF222222),
               shape: BoxShape.circle,
+              image: (_user?.avatar != null && _user!.avatar!.isNotEmpty)
+                  ? DecorationImage(
+                      image: NetworkImage(
+                        _user!.avatar!.startsWith('http')
+                            ? _user!.avatar!
+                            : '${ApiConfig.baseUrl.replaceAll('/auth', '')}${_user!.avatar}',
+                      ),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
-            child: Center(
-              child: Text(
-                _user?.name.isNotEmpty == true ? _user!.name.substring(0, 1).toUpperCase() : '?',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            child: (_user?.avatar == null || _user!.avatar!.isEmpty)
+                ? Center(
+                    child: Text(
+                      _user?.name.isNotEmpty == true ? _user!.name.substring(0, 1).toUpperCase() : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                : null,
           ),
           const SizedBox(height: 16),
           Text(
-            _user?.name ?? 'Ahmad',
+            _user?.name ?? 'Guest',
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
@@ -252,7 +310,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSubCard({required String title, required String imagePath, bool isNew = false}) {
+  Widget _buildSubCard({required String title, bool isNew = false}) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -336,21 +394,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
             height: 60,
           ),
           const SizedBox(width: 20),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Become a host',
-                  style: TextStyle(
+                  (_user?.role == 'HOST' || _hasListings) ? 'Switch to hosting' : 'Become a host',
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 SizedBox(height: 4),
                 Text(
-                  "It's easy to start hosting and earn extra income.",
-                  style: TextStyle(
+                  (_user?.role == 'HOST' || _hasListings)
+                    ? 'Manage your listings and reservations.'
+                    : "It's easy to start hosting and earn extra income.",
+                  style: const TextStyle(
                     fontSize: 14,
                     color: Colors.grey,
                   ),

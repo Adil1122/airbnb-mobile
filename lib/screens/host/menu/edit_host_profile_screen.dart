@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 import '../../../models/user_model.dart';
 import '../../../services/auth_service.dart';
+import '../../../utils/api_config.dart';
 
 class EditHostProfileScreen extends StatefulWidget {
   const EditHostProfileScreen({super.key});
@@ -133,12 +134,7 @@ class _EditHostProfileScreenState extends State<EditHostProfileScreen> {
       return Scaffold(backgroundColor: _softBg, body: const Center(child: CircularProgressIndicator(color: Colors.black)));
     }
 
-    String getBaseUrl() {
-      if (kIsWeb) return 'http://localhost:3001';
-      return 'http://192.168.1.12:3001';
-    }
-
-    final avatarUrl = _user?.avatar != null ? '${getBaseUrl()}${_user!.avatar}' : null;
+    final avatarUrl = _user?.avatar != null ? '${ApiConfig.baseUrl}${_user!.avatar}' : null;
 
     return Scaffold(
       backgroundColor: _softBg,

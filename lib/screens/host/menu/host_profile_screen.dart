@@ -3,6 +3,7 @@ import 'edit_host_profile_screen.dart';
 import '../../../services/auth_service.dart';
 import '../../../models/user_model.dart';
 import 'package:flutter/foundation.dart';
+import '../../../utils/api_config.dart';
 
 class HostProfileScreen extends StatefulWidget {
   const HostProfileScreen({super.key});
@@ -39,12 +40,7 @@ class _HostProfileScreenState extends State<HostProfileScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.black)));
     }
 
-    String getBaseUrl() {
-      if (kIsWeb) return 'http://localhost:3001';
-      return 'http://192.168.1.12:3001';
-    }
-
-    final avatarUrl = _user?.avatar != null ? '${getBaseUrl()}${_user!.avatar}' : null;
+    final avatarUrl = _user?.avatar != null ? '${ApiConfig.baseUrl}${_user!.avatar}' : null;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -134,7 +130,7 @@ class _HostProfileScreenState extends State<HostProfileScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      _user?.name ?? 'Ahmad',
+                      _user?.name ?? 'Guest',
                       style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,

@@ -3,6 +3,9 @@ import '../models/listing.dart';
 import '../services/property_service.dart';
 import 'reservation_screen.dart';
 import 'host/cancellation_policies_screen.dart';
+import '../services/auth_service.dart';
+import '../services/bookings_service.dart';
+import '../auth/login_signup_screen.dart';
 
 class PropertyDetailsScreen extends StatefulWidget {
   final Listing listing;
@@ -23,6 +26,8 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
   late String _selectedCancellationPolicy;
   bool _isLoading = true;
   final _propertyService = PropertyService();
+  final _bookingsService = BookingsService();
+  List<DateTime> _reservedDates = [];
 
   int _currentImageIndex = 0;
   int _currentReviewIndex = 0;
@@ -31,6 +36,11 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
   late ScrollController _mentionScrollController;
   bool _showLeftMentionBtn = false;
   bool _showRightMentionBtn = true;
+  
+  // Date selection state
+  late DateTime _checkIn;
+  late DateTime _checkOut;
+  int _nights = 2;
 
   @override
   void initState() {
@@ -42,20 +52,86 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
     _mentionScrollController = ScrollController();
     _mentionScrollController.addListener(_scrollListener);
     
+    // Initialize dates
+    _checkIn = DateTime.now().add(const Duration(days: 2));
+    _checkOut = _checkIn.add(Duration(days: _nights));
+    
     _loadPropertyDetails();
+  }
+
+  String _formatDate(DateTime date) {
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[date.month - 1]} ${date.day}';
+  }
+
+  String get _dateRange => '${_formatDate(_checkIn)} – ${_formatDate(_checkOut)}';
+
+  void _selectDates() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDateRange: DateTimeRange(start: _checkIn, end: _checkOut),
+      selectableDayPredicate: (DateTime date, DateTime? start, DateTime? end) {
+        final dateStr = date.toIso8601String().split('T')[0];
+        return !_reservedDates.any((rd) => rd.toIso8601String().split('T')[0] == dateStr);
+      },
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFE31C5F),
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (picked != null) {
+      // Check for conflicts
+      bool hasConflict = false;
+      for (int i = 0; i <= picked.end.difference(picked.start).inDays; i++) {
+        final date = picked.start.add(Duration(days: i));
+        final dateStr = date.toIso8601String().split('T')[0];
+        if (_reservedDates.any((rd) => rd.toIso8601String().split('T')[0] == dateStr)) {
+          hasConflict = true;
+          break;
+        }
+      }
+
+      if (hasConflict) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Some of the selected dates are already booked. Please choose another range.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      setState(() {
+        _checkIn = picked.start;
+        _checkOut = picked.end;
+        _nights = picked.end.difference(picked.start).inDays;
+        if (_nights < 1) _nights = 1;
+      });
+    }
   }
 
   Future<void> _loadPropertyDetails() async {
     final details = await _propertyService.fetchPropertyDetails(_currentListing.id);
-    if (details != null && mounted) {
+    final reservedDatesStr = await _bookingsService.getReservedDates(_currentListing.id);
+    
+    if (mounted) {
       setState(() {
-        _currentListing = details;
+        if (details != null) _currentListing = details;
+        _reservedDates = reservedDatesStr.map((d) => DateTime.parse(d)).toList();
         _isLoading = false;
       });
-    } else {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
   }
 
@@ -298,7 +374,7 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                               child: Column(
                                 children: [
                                   Text(
-                                    _currentListing.rating > 0 ? _currentListing.rating.toString() : 'New',
+                                    _currentListing.rating > 0 ? _currentListing.rating.toStringAsFixed(2) : 'New',
                                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 2),
@@ -679,9 +755,9 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
-                                        '6',
-                                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                      Text(
+                                        '${_currentListing.reviewsCount}',
+                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                       ),
                                       const Text(
                                         'Reviews',
@@ -690,14 +766,14 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                                       const SizedBox(height: 12),
                                       const Divider(height: 1),
                                       const SizedBox(height: 12),
-                                      const Row(
+                                      Row(
                                         children: [
                                           Text(
-                                            '5.0',
-                                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                            _currentListing.rating.toStringAsFixed(1),
+                                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                           ),
-                                          SizedBox(width: 4),
-                                          Icon(Icons.star, size: 14, color: Colors.black),
+                                          const SizedBox(width: 4),
+                                          const Icon(Icons.star, size: 14, color: Colors.black),
                                         ],
                                       ),
                                       const Text(
@@ -707,13 +783,21 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                                       const SizedBox(height: 12),
                                       const Divider(height: 1),
                                       const SizedBox(height: 12),
-                                      const Text(
-                                        '1',
-                                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                      Text(
+                                        _currentListing.hostSince != null
+                                            ? _currentListing.hostMonthsHosting < 12
+                                                ? '${_currentListing.hostMonthsHosting}'
+                                                : '${_currentListing.hostMonthsHosting ~/ 12}'
+                                            : '—',
+                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                       ),
-                                      const Text(
-                                        'Month hosting',
-                                        style: TextStyle(fontSize: 12, color: Color(0xFF222222)),
+                                      Text(
+                                        _currentListing.hostSince != null
+                                            ? _currentListing.hostMonthsHosting < 12
+                                                ? 'Month${_currentListing.hostMonthsHosting == 1 ? '' : 's'} hosting'
+                                                : 'Year${(_currentListing.hostMonthsHosting ~/ 12) == 1 ? '' : 's'} hosting'
+                                            : 'Hosting',
+                                        style: const TextStyle(fontSize: 12, color: Color(0xFF222222)),
                                       ),
                                     ],
                                   ),
@@ -818,25 +902,28 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                       const SizedBox(height: 32),
 
                       // Availability Section
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Availability",
-                                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                "Apr 3 – 5",
-                                style: TextStyle(fontSize: 16, color: Color(0xFF222222)),
-                              ),
-                            ],
-                          ),
-                          const Icon(Icons.chevron_right, size: 28),
-                        ],
+                      GestureDetector(
+                        onTap: _selectDates,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Availability",
+                                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _dateRange,
+                                  style: const TextStyle(fontSize: 16, color: Color(0xFF222222)),
+                                ),
+                              ],
+                            ),
+                            const Icon(Icons.chevron_right, size: 28),
+                          ],
+                        ),
                       ),
 
                       const SizedBox(height: 32),
@@ -1011,21 +1098,49 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'For 2 nights · Apr 3 – 5',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black.withOpacity(0.6),
+                        GestureDetector(
+                          onTap: _selectDates,
+                          child: Text(
+                            'For $_nights night${_nights > 1 ? 's' : ''} · $_dateRange',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black.withOpacity(0.6),
+                              decoration: TextDecoration.underline,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        final authService = AuthService();
+                        final user = await authService.getUser();
+                        
+                        if (!mounted) return;
+                        
+                        if (user == null) {
+                          // User not logged in, redirect to login
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please login to book this property'),
+                              backgroundColor: Color(0xFFE31C5F),
+                            ),
+                          );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginSignupScreen()),
+                          );
+                          return;
+                        }
+
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ReservationScreen(listing: _currentListing),
+                            builder: (context) => ReservationScreen(
+                              listing: _currentListing,
+                              checkIn: _checkIn,
+                              checkOut: _checkOut,
+                            ),
                           ),
                         );
                       },

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import '../../../utils/api_config.dart';
 
 class PayoutSettingsScreen extends StatefulWidget {
   const PayoutSettingsScreen({super.key});
@@ -24,10 +25,7 @@ class _PayoutSettingsScreenState extends State<PayoutSettingsScreen> {
     _checkStatus();
   }
 
-  String getBaseUrl() {
-    if (kIsWeb) return 'http://localhost:3001';
-    return 'http://192.168.1.12:3001';
-  }
+  String getBaseUrl() => ApiConfig.baseUrl;
 
   Future<void> _checkStatus() async {
     setState(() => _isLoading = true);

@@ -11,10 +11,10 @@ class TripsScreen extends StatefulWidget {
   const TripsScreen({super.key, this.onGetStarted});
 
   @override
-  State<TripsScreen> createState() => _TripsScreenState();
+  State<TripsScreen> createState() => TripsScreenState();
 }
 
-class _TripsScreenState extends State<TripsScreen> with SingleTickerProviderStateMixin {
+class TripsScreenState extends State<TripsScreen> with SingleTickerProviderStateMixin {
   final _bookingsService = BookingsService();
   final _propertyService = PropertyService();
 
@@ -37,6 +37,10 @@ class _TripsScreenState extends State<TripsScreen> with SingleTickerProviderStat
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  void refresh() {
+    _loadTrips();
   }
 
   Future<void> _loadTrips() async {
@@ -165,6 +169,7 @@ class _TripsScreenState extends State<TripsScreen> with SingleTickerProviderStat
             showCountdown: showCountdown,
             showReviewButton: showReviewButton,
             showCancelInfo: showCancelInfo,
+            onCancel: showCountdown ? () => _confirmCancel(booking) : null,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -175,6 +180,44 @@ class _TripsScreenState extends State<TripsScreen> with SingleTickerProviderStat
         },
       ),
     );
+  }
+
+  Future<void> _confirmCancel(Booking booking) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Trip?'),
+        content: const Text('Are you sure you want to cancel this reservation? This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No, keep it')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Yes, cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isLoading = true);
+      final success = await _bookingsService.cancelBooking(booking.id, reason: 'Guest cancelled from app');
+      if (success) {
+        await _loadTrips();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Reservation cancelled successfully'), backgroundColor: Colors.red),
+          );
+        }
+      } else {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to cancel reservation')),
+          );
+        }
+      }
+    }
   }
 
   // ── Empty state ──────────────────────────────────────────────────────────────
@@ -319,6 +362,7 @@ class _BookingCard extends StatelessWidget {
   final bool showCountdown;
   final bool showReviewButton;
   final bool showCancelInfo;
+  final VoidCallback? onCancel;
   final VoidCallback onTap;
 
   const _BookingCard({
@@ -327,6 +371,7 @@ class _BookingCard extends StatelessWidget {
     required this.showCountdown,
     required this.showReviewButton,
     required this.showCancelInfo,
+    this.onCancel,
     required this.onTap,
   });
 
@@ -442,6 +487,22 @@ class _BookingCard extends StatelessWidget {
                     const SizedBox(height: 12),
                     _ReviewButton(booking: booking, listing: listing),
                   ],
+
+                  // ── Cancel button for upcoming bookings ────────────────────
+                  if (onCancel != null) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: onCancel,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red.shade700,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text('Cancel Reservation', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -475,7 +536,7 @@ class _StatusBadge extends StatelessWidget {
           break;
         case 'pending':
           bg = const Color(0xFFF5A623);
-          label = 'Pending';
+          label = 'Upcoming';
           break;
         case 'cancelled':
           bg = Colors.red;

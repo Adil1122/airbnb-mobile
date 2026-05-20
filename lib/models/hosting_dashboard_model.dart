@@ -1,3 +1,5 @@
+import 'booking_model.dart';
+
 class HostAction {
   final int id;
   final String title;
@@ -31,6 +33,8 @@ class HostDashboardData {
   final int upcoming;
   final int pendingReview;
   final List<HostAction> actions;
+  final List<Booking> arrivals;
+  final List<Booking> upcomingList;
 
   HostDashboardData({
     required this.checkingIn,
@@ -39,6 +43,8 @@ class HostDashboardData {
     required this.upcoming,
     required this.pendingReview,
     required this.actions,
+    required this.arrivals,
+    required this.upcomingList,
   });
 
   factory HostDashboardData.fromJson(Map<String, dynamic> json) {
@@ -50,6 +56,12 @@ class HostDashboardData {
       pendingReview: json['pendingReview'] ?? 0,
       actions: (json['actions'] as List? ?? [])
           .map((a) => HostAction.fromJson(a))
+          .toList(),
+      arrivals: (json['arrivals'] as List? ?? [])
+          .map((b) => Booking.fromJson(b))
+          .toList(),
+      upcomingList: (json['upcomingList'] as List? ?? [])
+          .map((b) => Booking.fromJson(b))
           .toList(),
     );
   }

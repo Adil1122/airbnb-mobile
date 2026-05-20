@@ -9,7 +9,8 @@ import 'tabs/hosting_menu_tab.dart';
 import '../../services/auth_service.dart';
 
 class HostingMainScreen extends StatefulWidget {
-  const HostingMainScreen({super.key});
+  final int initialIndex;
+  const HostingMainScreen({super.key, this.initialIndex = 0});
 
   static _HostingMainScreenState? of(BuildContext context) => 
       context.findAncestorStateOfType<_HostingMainScreenState>();
@@ -27,6 +28,7 @@ class _HostingMainScreenState extends State<HostingMainScreen> {
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _checkAuth();
   }
 

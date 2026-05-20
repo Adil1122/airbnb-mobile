@@ -2,32 +2,59 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../models/listing.dart';
 import '../services/payment_service.dart';
+import '../services/bookings_service.dart';
 import '../models/booking_model.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
 class ReservationScreen extends StatefulWidget {
   final Listing listing;
+  final DateTime? checkIn;
+  final DateTime? checkOut;
 
-  const ReservationScreen({super.key, required this.listing});
+  const ReservationScreen({
+    super.key, 
+    required this.listing,
+    this.checkIn,
+    this.checkOut,
+  });
 
   @override
   State<ReservationScreen> createState() => _ReservationScreenState();
 }
 
 class _ReservationScreenState extends State<ReservationScreen> {
+  final _paymentService = PaymentService();
+  final _bookingsService = BookingsService();
   int _currentStep = 0; // 0: Review, 1: Payment, 2: Confirm
   String _selectedPaymentMethod = 'google_pay';
+  bool _isStripeCardLinked = false;
   int _nights = 2;
   int _guests = 1;
   late DateTime _checkIn;
   late DateTime _checkOut;
-  final _paymentService = PaymentService();
+  List<DateTime> _reservedDates = [];
 
   @override
   void initState() {
     super.initState();
-    _checkIn = DateTime.now().add(const Duration(days: 2));
-    _checkOut = _checkIn.add(Duration(days: _nights));
+    _checkIn = widget.checkIn ?? DateTime.now().add(const Duration(days: 2));
+    _checkOut = widget.checkOut ?? _checkIn.add(const Duration(days: 2));
+    _nights = _checkOut.difference(_checkIn).inDays;
+    if (_nights < 1) _nights = 1;
+    _fetchReservedDates();
+  }
+
+  Future<void> _fetchReservedDates() async {
+    try {
+      final datesStr = await _bookingsService.getReservedDates(widget.listing.id);
+      if (mounted) {
+        setState(() {
+          _reservedDates = datesStr.map((d) => DateTime.parse(d)).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching reserved dates: $e');
+    }
   }
 
   double get _totalPrice => widget.listing.price * _nights;
@@ -713,7 +740,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
               ],
             ),
             child: ElevatedButton(
-              onPressed: _currentStep == 2 ? _processPayment : () => setState(() => _currentStep++),
+              onPressed: _currentStep == 2 
+                ? (_selectedPaymentMethod == 'stripe' && _isStripeCardLinked ? _confirmBooking : _processPayment)
+                : () => setState(() => _currentStep++),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.transparent,
                 foregroundColor: Colors.white,
@@ -809,7 +838,12 @@ class _ReservationScreenState extends State<ReservationScreen> {
   }) {
     final isSelected = _selectedPaymentMethod == id;
     return InkWell(
-      onTap: () => setState(() => _selectedPaymentMethod = id),
+      onTap: () async {
+        setState(() => _selectedPaymentMethod = id);
+        if (id == 'stripe') {
+          await _setupStripeCard();
+        }
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         child: Row(
@@ -885,6 +919,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       initialDateRange: DateTimeRange(start: _checkIn, end: _checkOut),
+      selectableDayPredicate: (DateTime date, DateTime? start, DateTime? end) {
+        // Return false to disable the date
+        final dateStr = date.toIso8601String().split('T')[0];
+        return !_reservedDates.any((rd) => rd.toIso8601String().split('T')[0] == dateStr);
+      },
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -897,7 +936,31 @@ class _ReservationScreenState extends State<ReservationScreen> {
         );
       },
     );
+    
     if (picked != null) {
+      // Check if ANY date in the range is reserved
+      bool hasConflict = false;
+      for (int i = 0; i <= picked.end.difference(picked.start).inDays; i++) {
+        final date = picked.start.add(Duration(days: i));
+        final dateStr = date.toIso8601String().split('T')[0];
+        if (_reservedDates.any((rd) => rd.toIso8601String().split('T')[0] == dateStr)) {
+          hasConflict = true;
+          break;
+        }
+      }
+
+      if (hasConflict) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Some of the selected dates are already booked. Please choose another range.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       setState(() {
         _checkIn = picked.start;
         _checkOut = picked.end;
@@ -1035,6 +1098,58 @@ class _ReservationScreenState extends State<ReservationScreen> {
     );
   }
 
+  Future<void> _setupStripeCard() async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFE31C5F))),
+    );
+
+    try {
+      // 1. Create a "Setup Intent" or just use a dummy amount to verify the card
+      // In a real app, you might use a SetupIntent to save the card for future use
+      // For this test, we will just initialize the payment sheet normally
+      final serviceFee = _totalPrice * 0.12;
+      final intentData = await _paymentService.createPaymentIntent(
+        amount: _totalPrice,
+        serviceFee: serviceFee,
+        propertyId: int.tryParse(widget.listing.id) ?? 0,
+        hostId: int.tryParse(widget.listing.hostId.toString()) ?? 0,
+      );
+
+      if (intentData == null || intentData['clientSecret'] == null) throw Exception('Failed to initialize Stripe');
+
+      await Stripe.instance.initPaymentSheet(
+        paymentSheetParameters: SetupPaymentSheetParameters(
+          paymentIntentClientSecret: intentData['clientSecret'],
+          merchantDisplayName: 'Airbnb Clone',
+          style: ThemeMode.light,
+        ),
+      );
+
+      if (mounted) Navigator.pop(context); // Close loading
+
+      // 2. Present the sheet to the user
+      await Stripe.instance.presentPaymentSheet();
+
+      // 3. If successful, link the card and move to Confirm Step
+      setState(() {
+        _isStripeCardLinked = true;
+        _currentStep = 2; // Go to Confirm and pay screen
+      });
+
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      debugPrint('Stripe Setup Error: $e');
+      if (e is StripeException && e.error.code == FailureCode.Canceled) {
+        // User canceled, just stay on the same screen
+        return;
+      }
+      _showErrorSnackBar('Failed to add card: $e');
+    }
+  }
+
   Future<void> _processPayment() async {
     if (kIsWeb) {
       _showErrorSnackBar('Payments are not yet supported on Web. Please use the mobile app.');
@@ -1086,24 +1201,41 @@ class _ReservationScreenState extends State<ReservationScreen> {
       _confirmBooking();
 
     } catch (e) {
+      debugPrint('DEBUG: Payment Process Error: $e');
       if (mounted) {
-        // Only pop if dialog is still showing
         if (Navigator.canPop(context)) Navigator.pop(context);
         
+        String message = e.toString();
         if (e is StripeException) {
-          _showErrorSnackBar('Payment failed: ${e.error.localizedMessage}');
-        } else {
-          _showErrorSnackBar('Error: ${e.toString()}');
+          message = 'Stripe Error: ${e.error.localizedMessage}';
         }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 10),
+            action: SnackBarAction(
+              label: 'Details',
+              textColor: Colors.white,
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Technical Details'),
+                    content: SingleChildScrollView(child: Text(e.toString())),
+                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
       }
     }
   }
 
   Future<void> _confirmBooking() async {
-    // This would typically be called after Stripe confirmation
-    // In a real app, you might want to verify the payment status on the backend again
-    // For now, we call the bookings API
-    
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1111,16 +1243,36 @@ class _ReservationScreenState extends State<ReservationScreen> {
     );
 
     try {
-      final success = await _paymentService.capturePayment(0); // This should be replaced with real booking creation logic
+      // 1. Create the actual booking in the database
+      final pId = int.tryParse(widget.listing.id) ?? 0;
+      final hId = widget.listing.hostId ?? 0;
+      debugPrint('DEBUG: Attempting to create booking. PropertyID: $pId, HostID: $hId');
+
+      final bookingData = await _bookingsService.createBooking(
+        propertyId: pId,
+        hostId: hId,
+        checkIn: _checkIn.toIso8601String(),
+        checkOut: _checkOut.toIso8601String(),
+        guests: _guests,
+        propertyPrice: widget.listing.price,
+        totalPrice: _totalPrice,
+        serviceFee: _totalPrice * 0.12,
+        cleaningFee: 0,
+        currency: 'USD',
+        stripePaymentIntentId: 'PAYMENT_CONFIRMED', // You could pass the real intent ID here
+      );
 
       if (mounted) Navigator.pop(context); // Close loading
 
-      // Navigate to success or show dialog
-      _showSuccessDialog();
+      if (bookingData != null) {
+        _showSuccessDialog();
+      } else {
+        throw Exception('Server failed to save booking');
+      }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        _showErrorSnackBar('Booking failed: ${e.toString()}');
+        _showErrorSnackBar('Booking failed to save: ${e.toString()}');
       }
     }
   }

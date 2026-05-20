@@ -25,6 +25,11 @@ class UserModel {
   final String? phone;
   final String? mailingAddress;
   final String? emergencyContact;
+  final String? stripeCustomerId;
+  final String? stripeAccountId;
+  final bool isStripeConnected;
+  final String role;
+  final DateTime? lastLoginAt;
 
   UserModel({
     required this.id,
@@ -53,6 +58,11 @@ class UserModel {
     this.phone,
     this.mailingAddress,
     this.emergencyContact,
+    this.stripeCustomerId,
+    this.stripeAccountId,
+    this.isStripeConnected = false,
+    this.role = 'GUEST',
+    this.lastLoginAt,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -83,6 +93,11 @@ class UserModel {
       phone: json['phone'],
       mailingAddress: json['mailingAddress'],
       emergencyContact: json['emergencyContact'],
+      stripeCustomerId: json['stripeCustomerId'],
+      stripeAccountId: json['stripeAccountId'],
+      isStripeConnected: json['isStripeConnected'] ?? false,
+      role: json['role'] ?? 'GUEST',
+      lastLoginAt: json['lastLoginAt'] != null ? DateTime.tryParse(json['lastLoginAt'].toString()) : null,
     );
   }
 
@@ -114,6 +129,10 @@ class UserModel {
       'phone': phone,
       'mailingAddress': mailingAddress,
       'emergencyContact': emergencyContact,
+      'stripeCustomerId': stripeCustomerId,
+      'stripeAccountId': stripeAccountId,
+      'isStripeConnected': isStripeConnected,
+      'role': role,
     };
   }
 }

@@ -153,7 +153,7 @@ class ListingCard extends StatelessWidget {
                   const Icon(Icons.star, size: 14, color: Colors.black87),
                   const SizedBox(width: 4),
                   Text(
-                    listing.rating.toString(),
+                    listing.rating.toStringAsFixed(2),
                     style: const TextStyle(
                       color: Colors.black87,
                       fontSize: 14,

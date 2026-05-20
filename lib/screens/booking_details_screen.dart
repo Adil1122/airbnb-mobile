@@ -103,7 +103,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                   
                   const Text('Reservation details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 24),
-                  _buildDetailRow('Status', widget.booking.status.toUpperCase(), isStatus: true),
+                  _buildDetailRow('Status', widget.booking.status.toLowerCase() == 'pending' ? 'UPCOMING' : widget.booking.status.toUpperCase(), isStatus: true),
                   _buildDetailRow('Dates', dateRange),
                   _buildDetailRow('Guests', '${widget.booking.guests} guest${widget.booking.guests > 1 ? 's' : ''}'),
                   _buildDetailRow('Stay', '${widget.booking.nights} night${widget.booking.nights > 1 ? 's' : ''}'),
@@ -119,7 +119,7 @@ class _BookingDetailsScreenState extends State<BookingDetailsScreen> {
                   
                   const SizedBox(height: 48),
                   
-                  if (widget.booking.status.toLowerCase() == 'confirmed')
+                  if (widget.booking.status.toLowerCase() == 'confirmed' || widget.booking.status.toLowerCase() == 'pending')
                     SizedBox(
                       width: double.infinity,
                       height: 56,

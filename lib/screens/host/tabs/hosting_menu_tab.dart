@@ -5,6 +5,10 @@ import '../menu/hosting_resources_screen.dart';
 import '../menu/find_cohost_screen.dart';
 import '../menu/get_help_screen.dart';
 import '../menu/create_listing_screen.dart';
+import '../menu/create_experience_screen.dart';
+import '../menu/create_service_screen.dart';
+import '../menu/my_experiences_screen.dart';
+import '../menu/my_services_screen.dart';
 import '../menu/refer_host_screen.dart';
 import '../menu/legal_screen.dart';
 import '../menu/host_profile_screen.dart';
@@ -12,7 +16,9 @@ import '../menu/payout_settings_screen.dart';
 import '../../../services/auth_service.dart';
 import '../../../models/user_model.dart';
 import '../../../auth/login_signup_screen.dart';
+import '../../main_screen.dart';
 import 'package:flutter/foundation.dart';
+import '../../../utils/api_config.dart';
 
 class HostingMenuTab extends StatefulWidget {
   const HostingMenuTab({super.key});
@@ -49,10 +55,7 @@ class _HostingMenuTabState extends State<HostingMenuTab> {
     }
   }
 
-  String getBaseUrl() {
-    if (kIsWeb) return 'http://localhost:3001';
-    return 'http://192.168.1.12:3001';
-  }
+  String getBaseUrl() => ApiConfig.baseUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -122,8 +125,16 @@ class _HostingMenuTabState extends State<HostingMenuTab> {
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GetHelpScreen()))),
                 _buildMenuItem(context, Icons.emoji_people_outlined, 'Find a co-host', 
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FindCohostScreen()))),
-                _buildMenuItem(context, Icons.add, 'Create a new listing', 
+                _buildMenuItem(context, Icons.add_home_outlined, 'Create a new listing',
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateListingScreen()))),
+                _buildMenuItem(context, Icons.explore_outlined, 'Host an experience',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateExperienceScreen()))),
+                _buildMenuItem(context, Icons.list_alt_outlined, 'My experiences',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyExperiencesScreen()))),
+                _buildMenuItem(context, Icons.handyman_outlined, 'Offer a service',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateServiceScreen()))),
+                _buildMenuItem(context, Icons.home_repair_service_outlined, 'My services',
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MyServicesScreen()))),
                 _buildMenuItem(context, Icons.people_outline, 'Refer a host',
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ReferHostScreen()))),
                 _buildMenuItem(context, Icons.payments_outlined, 'Payout settings',
@@ -223,6 +234,26 @@ class _HostingMenuTabState extends State<HostingMenuTab> {
             ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const MainScreen()),
+            (route) => false,
+          );
+        },
+        backgroundColor: Colors.black,
+        elevation: 4,
+        label: const Text(
+          'Switch to traveling',
+          style: TextStyle(
+            color: Colors.white, 
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        icon: const Icon(Icons.swap_horiz, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 

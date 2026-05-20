@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../personal_info/deactivation_reason_screen.dart';
+import '../../../../services/auth_service.dart';
+import '../../../../models/user_model.dart';
 
 class LoginSecurityScreen extends StatefulWidget {
   const LoginSecurityScreen({super.key});
@@ -11,7 +13,9 @@ class LoginSecurityScreen extends StatefulWidget {
 class _LoginSecurityScreenState extends State<LoginSecurityScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isCreatingPassword = false;
-  
+  UserModel? _profile;
+  final _authService = AuthService();
+
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
@@ -19,6 +23,21 @@ class _LoginSecurityScreenState extends State<LoginSecurityScreen> with SingleTi
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final profile = await _authService.getProfile();
+    if (mounted) setState(() => _profile = profile);
+  }
+
+  String _formatLastLogin(DateTime? dt) {
+    if (dt == null) return 'Unknown';
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '${months[dt.month - 1]} ${dt.day}, ${dt.year} at $h:$m';
   }
 
   @override
@@ -158,9 +177,9 @@ class _LoginSecurityScreenState extends State<LoginSecurityScreen> with SingleTi
                       ],
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Abbottabad, Khyber Pakhtunkhwa · April 1, 2026 at 15:28',
-                      style: TextStyle(fontSize: 15, color: Colors.black54, height: 1.4),
+                    Text(
+                      _formatLastLogin(_profile?.lastLoginAt),
+                      style: const TextStyle(fontSize: 15, color: Colors.black54, height: 1.4),
                     ),
                   ],
                 ),

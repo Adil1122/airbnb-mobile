@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
+import '../../../models/booking_model.dart';
 import '../required_actions_screen.dart';
 import '../hosting_main_screen.dart';
 import '../../../services/host_service.dart';
@@ -153,46 +154,47 @@ class _HostingTodayTabState extends State<HostingTodayTab> {
                         ),
                       ),
                     ] else ...[
-                      // If has reservations, show them here (simplified for now)
-                      Text(
-                        _isTodaySelected 
-                            ? '${_dashboardData?.checkingIn} checking in\n${_dashboardData?.checkingOut} checking out'
-                            : '${_dashboardData?.upcoming} upcoming reservations',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      // If has reservations, show them here
+                      Column(
+                        children: [
+                          ...(_isTodaySelected 
+                              ? (_dashboardData?.arrivals ?? []) 
+                              : (_dashboardData?.upcomingList ?? []))
+                          .map((booking) => _buildBookingCard(booking)),
+                          const SizedBox(height: 24),
+                        ],
                       ),
                     ],
                     const SizedBox(height: 48),
                     
-                    // CTA Button
-                    ElevatedButton(
-                      onPressed: () {
-                        final mainState = HostingMainScreen.of(context);
-                        if (mainState != null) {
-                          mainState.setIndex(2); // Index for HostingListingsTab
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF7F7F7),
-                        foregroundColor: Colors.black,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey.shade300),
+                    // CTA Button — only show if there are actions to complete
+                    if (_dashboardData != null && _dashboardData!.actions.isNotEmpty) ...[
+                      ElevatedButton(
+                        onPressed: () {
+                          final mainState = HostingMainScreen.of(context);
+                          if (mainState != null) {
+                            mainState.setIndex(2); // Index for HostingListingsTab
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF7F7F7),
+                          foregroundColor: Colors.black,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: Colors.grey.shade300),
+                          ),
+                        ),
+                        child: const Text(
+                          'Complete your listing',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      child: const Text(
-                        'Complete your listing',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+                    ],
                     const SizedBox(height: 120), // Space for the bottom banner
                   ],
                 ),
@@ -281,6 +283,92 @@ class _HostingTodayTabState extends State<HostingTodayTab> {
         ),
       ),
     );
+  }
+
+  Widget _buildBookingCard(Booking booking) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const CircleAvatar(
+                backgroundColor: Color(0xFFF7F7F7),
+                child: Icon(Icons.person, color: Colors.black54),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Reservation • ${booking.status.toUpperCase()}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+                    ),
+                    const Text(
+                      'Guest Arriving', // Simplified, could get guest name from backend
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Dates', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                    Text(
+                      '${booking.checkIn.day} ${_getMonth(booking.checkIn.month)} – ${booking.checkOut.day} ${_getMonth(booking.checkOut.month)}',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Total Payout', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                    Text(
+                      '\$${booking.totalPrice.toStringAsFixed(2)}',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getMonth(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1];
   }
 
   Widget _buildToggleButton(String label, {required bool isSelected}) {

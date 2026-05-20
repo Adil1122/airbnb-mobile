@@ -190,7 +190,10 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
                           ),
                           child: CircleAvatar(
                             radius: 40,
-                            backgroundImage: NetworkImage('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&q=80'), // Placeholder avatar
+                            backgroundColor: Colors.grey.shade200,
+                            backgroundImage: listing.hostImageUrl.isNotEmpty
+                                ? NetworkImage(listing.hostImageUrl)
+                                : const NetworkImage('https://cdn-icons-png.flaticon.com/512/149/149071.png'),
                           ),
                         ),
                       ),
@@ -342,7 +345,7 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
       child: Column(
         children: [
           _buildPackageCard(
-            'https://images.unsplash.com/photo-1606791422814-b32c705e3e2f?w=200&q=80',
+            _currentListing.imageUrl,
             'Standard Package',
             '• 1 hour duration\n• Basic consultation included\n• Full equipment provided',
             '\$${_currentListing.price.toInt()} / session · 1 hr',
@@ -545,9 +548,12 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
             ),
             child: Column(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 50,
-                  backgroundImage: NetworkImage('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80'),
+                  backgroundColor: Colors.grey.shade200,
+                  backgroundImage: _currentListing.hostImageUrl.isNotEmpty
+                      ? NetworkImage(_currentListing.hostImageUrl)
+                      : const NetworkImage('https://cdn-icons-png.flaticon.com/512/149/149071.png'),
                 ),
                 const SizedBox(height: 16),
                 Text(

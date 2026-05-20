@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:io';
 
 class ApiConfig {
-  static const String hostIp = '192.168.1.8';
+  static const String hostIp = '192.168.1.29';
   static const String port = '3001';
 
   static String get baseUrl {
@@ -40,6 +40,7 @@ class ApiConfig {
   static String cancelBookingUrl(int id) => '$baseUrl/bookings/$id/cancel';
   static String get bookingAvailabilityUrl => '$baseUrl/bookings/availability';
   static String get validatePromoUrl => '$baseUrl/bookings/validate-promo';
+  static String reservedDatesUrl(int propertyId) => '$baseUrl/bookings/reserved-dates/$propertyId';
 
   // ── Reviews ───────────────────────────────────────────
   static String get reviewsUrl => '$baseUrl/reviews';

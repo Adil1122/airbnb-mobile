@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.airbnb_mobile"
     compileSdk = 36
-    buildToolsVersion = "34.0.0"
+    buildToolsVersion = "35.0.0"
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -26,6 +26,17 @@ android {
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
+    }
+
+    configurations.all {
+        resolutionStrategy {
+            force("org.jetbrains.kotlin:kotlin-stdlib:2.2.0")
+            force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.2.0")
+            force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.2.0")
+            force("org.jetbrains.kotlin:kotlin-stdlib-common:2.2.0")
+            force("org.jetbrains.kotlin:kotlin-reflect:2.2.0")
+        }
     }
 
     buildTypes {
@@ -40,4 +51,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.11.0")
 }

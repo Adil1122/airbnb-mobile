@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 import '../../../../models/user_model.dart';
 import '../../../../services/auth_service.dart';
+import '../../../../utils/api_config.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key});
@@ -138,12 +139,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       return Scaffold(backgroundColor: _softBg, body: const Center(child: CircularProgressIndicator(color: Colors.black)));
     }
 
-    String getBaseUrl() {
-      if (kIsWeb) return 'http://localhost:3001';
-      return 'http://192.168.1.12:3001';
-    }
-
-    final avatarUrl = _user?.avatar != null ? '${getBaseUrl()}${_user!.avatar}' : null;
+    final avatarUrl = (_user?.avatar != null && _user!.avatar!.isNotEmpty)
+        ? (_user!.avatar!.startsWith('http')
+            ? _user!.avatar
+            : '${ApiConfig.baseUrl.replaceAll('/auth', '')}${_user!.avatar}')
+        : null;
 
     return Scaffold(
       backgroundColor: _softBg,
@@ -227,7 +227,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                               decoration: BoxDecoration(color: _softBg, borderRadius: BorderRadius.circular(20)),
-                              child: const Text('Host Member', style: TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.w600)),
+                              child: Text(
+                                _user?.role == 'HOST' ? 'Host Member' : 'Guest Member', 
+                                style: const TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.w600),
+                              ),
                             ),
                           ],
                         ),

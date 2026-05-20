@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/api_config.dart';
@@ -99,6 +100,9 @@ class BookingsService {
       body: jsonEncode(body),
     );
     if (res.statusCode == 201) return jsonDecode(res.body) as Map<String, dynamic>;
+    
+    debugPrint('DEBUG: Booking failed with status ${res.statusCode}');
+    debugPrint('DEBUG: Server Error Body: ${res.body}');
     return null;
   }
 
@@ -161,5 +165,24 @@ class BookingsService {
     );
     if (res.statusCode == 201) return jsonDecode(res.body) as Map<String, dynamic>;
     return null;
+  }
+
+  Future<List<String>> getReservedDates(dynamic propertyId) async {
+    final token = await _getToken();
+    if (token == null) return [];
+    
+    // Convert to string for URL if needed
+    final id = propertyId.toString();
+    
+    final res = await http.get(
+      Uri.parse(ApiConfig.reservedDatesUrl(int.parse(id))),
+      headers: _authHeaders(token),
+    );
+    
+    if (res.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(res.body);
+      return data.map((e) => e.toString()).toList();
+    }
+    return [];
   }
 }
