@@ -175,7 +175,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
       builder: (context) => Padding(
@@ -195,10 +195,10 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
             ),
             const SizedBox(height: 24),
             _buildTextField('Card number', 'xxxx xxxx xxxx xxxx'),
-            const Row(
+            Row(
               children: [
                 Expanded(child: _buildTextField('Expiration', 'MM / YY')),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(child: _buildTextField('CVV', '123')),
               ],
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:airbnb_mobile/screens/main_screen.dart';
 import 'package:airbnb_mobile/services/auth_service.dart';
 
@@ -19,6 +20,9 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
   bool _isSignUp = false;
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _googleLoading = false;
+
+  final _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
 
   @override
   void dispose() {
@@ -32,6 +36,37 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     setState(() {
       _isSignUp = !_isSignUp;
     });
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _googleLoading = true);
+    try {
+      final account = await _googleSignIn.signIn();
+      if (account == null) { setState(() => _googleLoading = false); return; }
+
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) throw Exception('No ID token from Google');
+
+      final result = await _authService.loginWithGoogle(idToken);
+      if (!mounted) return;
+      setState(() => _googleLoading = false);
+
+      if (result['success'] == true) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Google sign-in failed'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _googleLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google sign-in error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   Future<void> _handleAuth() async {
@@ -303,9 +338,10 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
               const SizedBox(height: 16),
               _buildSocialButton(
                 icon: Icons.g_mobiledata,
-                label: 'Continue with Google',
+                label: _googleLoading ? 'Signing in...' : 'Continue with Google',
                 iconColor: Colors.red,
                 iconSize: 32,
+                onPressed: _googleLoading ? null : _handleGoogleSignIn,
               ),
               const SizedBox(height: 16),
               _buildSocialButton(

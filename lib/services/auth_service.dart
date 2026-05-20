@@ -26,7 +26,7 @@ class AuthService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final token = data['accessToken'];
+        final token = data['auth_token'];
         final userData = UserModel.fromJson(data['user']);
         
         await _saveToken(token);
@@ -56,7 +56,7 @@ class AuthService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final token = data['accessToken'];
+        final token = data['auth_token'];
         final userData = UserModel.fromJson(data['user']);
         
         await _saveToken(token);
@@ -71,9 +71,29 @@ class AuthService {
     }
   }
 
+  Future<Map<String, dynamic>> loginWithGoogle(String idToken) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/google/token'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'idToken': idToken}),
+      );
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await _saveToken(data['accessToken']);
+        final user = UserModel.fromJson(data['user']);
+        await _saveUser(user);
+        return {'success': true, 'user': user};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Google login failed'};
+    } catch (e) {
+      return {'success': false, 'message': 'Error: $e'};
+    }
+  }
+
   Future<void> _saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('accessToken', token);
+    await prefs.setString('auth_token', token);
   }
 
   Future<void> _saveUser(UserModel user) async {
@@ -83,7 +103,7 @@ class AuthService {
 
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('accessToken');
+    return prefs.getString('auth_token');
   }
 
   Future<UserModel?> getUser() async {
@@ -220,7 +240,7 @@ class AuthService {
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('accessToken');
+    await prefs.remove('auth_token');
     await prefs.remove('user');
   }
 }

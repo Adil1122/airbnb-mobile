@@ -2,13 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'dart:io';
 
 class ApiConfig {
-  static const String hostIp = '192.168.1.12';
+  static const String hostIp = '192.168.1.8';
   static const String port = '3001';
 
   static String get baseUrl {
     if (kIsWeb) return 'http://localhost:$port';
     if (Platform.isAndroid) return 'http://$hostIp:$port';
     return 'http://$hostIp:$port';
+  }
+
+  static String get wsBaseUrl {
+    if (kIsWeb) return 'ws://localhost:$port';
+    return 'ws://$hostIp:$port';
   }
 
   // ── Auth ──────────────────────────────────────────────
@@ -64,6 +69,7 @@ class ApiConfig {
   static String get notificationPreferencesUrl => '$baseUrl/notifications/preferences';
   static String get markAllNotificationsReadUrl => '$baseUrl/notifications/read-all';
   static String markNotificationReadUrl(int id) => '$baseUrl/notifications/$id/read';
+  static String get deviceTokenUrl => '$baseUrl/notifications/device-token';
 
   // ── Payments ──────────────────────────────────────────
   static String get paymentIntentUrl => '$baseUrl/payment/create-intent';
@@ -73,4 +79,43 @@ class ApiConfig {
   // ── Categories & Destinations ─────────────────────────
   static String get categoriesUrl => '$baseUrl/categories';
   static String get destinationsUrl => '$baseUrl/destinations';
+
+  // ── Upload ────────────────────────────────────────────
+  static String get uploadImageUrl => '$baseUrl/upload/image';
+  static String get uploadImagesUrl => '$baseUrl/upload/images';
+  static String deleteUploadUrl(String filename) => '$baseUrl/upload/$filename';
+
+  // ── Co-Hosts ──────────────────────────────────────────
+  static String get coHostsUrl => '$baseUrl/co-hosts';
+  static String get coHostInvitationsUrl => '$baseUrl/co-hosts/invitations';
+  static String get myCoHostPropertiesUrl => '$baseUrl/co-hosts/my-properties';
+  static String coHostRespondUrl(int id) => '$baseUrl/co-hosts/$id/respond';
+  static String propertyCoHostsUrl(int propertyId) => '$baseUrl/co-hosts/property/$propertyId';
+
+  // ── Recently Viewed ───────────────────────────────────
+  static String get recentlyViewedUrl => '$baseUrl/recently-viewed';
+
+  // ── Connections ───────────────────────────────────────
+  static String get connectionsUrl => '$baseUrl/connections';
+  static String get connectionRequestUrl => '$baseUrl/connections/request';
+  static String get pendingConnectionsUrl => '$baseUrl/connections/pending';
+  static String connectionRespondUrl(int id) => '$baseUrl/connections/$id/respond';
+
+  // ── Superhost ─────────────────────────────────────────
+  static String get superhostStatsUrl => '$baseUrl/superhost/my-stats';
+
+  // ── Smart Pricing ─────────────────────────────────────
+  static String get smartPricingUrl => '$baseUrl/smart-pricing';
+  static String priceSuggestionUrl(int propertyId) => '$baseUrl/smart-pricing/$propertyId/suggestion';
+  static String priceCalendarUrl(int propertyId) => '$baseUrl/smart-pricing/$propertyId/calendar';
+
+  // ── iCal ──────────────────────────────────────────────
+  static String get hostIcalUrl => '$baseUrl/ical/host';
+  static String get guestIcalUrl => '$baseUrl/ical/trips';
+
+  // ── Admin ─────────────────────────────────────────────
+  static String get adminDashboardUrl => '$baseUrl/admin/dashboard';
+  static String get adminUsersUrl => '$baseUrl/admin/users';
+  static String get adminPropertiesUrl => '$baseUrl/admin/properties';
+  static String get adminBookingsUrl => '$baseUrl/admin/bookings';
 }
